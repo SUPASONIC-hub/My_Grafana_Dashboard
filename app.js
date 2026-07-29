@@ -1,4 +1,4 @@
-const palette = ["#2dd4bf", "#60a5fa", "#f59e0b", "#fb7185", "#a78bfa", "#84cc16"];
+const palette = ["#5794f2", "#73bf69", "#f2cc0c", "#f2495c", "#b877d9", "#ff9830"];
 const platforms = ["웹", "IOS", "AOS"];
 const pages = ["홈", "웨딩홀 상세", "스드메 패키지", "견적 비교", "리뷰", "상담 신청", "이벤트"];
 const keywords = ["스몰웨딩", "본식스냅", "드레스", "웨딩홀", "메이크업", "청첩장"];
@@ -19,9 +19,9 @@ function number(base, spread = 0.2) {
 }
 function pct(value) { return `${value.toFixed(1)}%`; }
 function heatColor(value) {
-  if (value >= 70) return "#2dd4bf";
-  if (value >= 45) return "#f59e0b";
-  return "#fb7185";
+  if (value >= 70) return "#73bf69";
+  if (value >= 45) return "#f2cc0c";
+  return "#f2495c";
 }
 function renderTable(id, columns, rows) {
   const head = columns.map((col) => `<th class="${col.num ? "num" : ""}">${col.label}</th>`).join("");
@@ -55,8 +55,8 @@ function renderLineChart(id, series) {
   const x = (i) => pad + (i / (series[0].points.length - 1)) * (width - pad * 1.5);
   const y = (v) => height - pad - (v / max) * (height - pad * 1.4);
   const grid = [0.25, 0.5, 0.75, 1].map((ratio) => `<line class="tick" x1="${pad}" y1="${height - pad - ratio * (height - pad * 1.4)}" x2="${width - pad / 2}" y2="${height - pad - ratio * (height - pad * 1.4)}"/>`).join("");
-  const paths = series.map((item) => `<path d="${item.points.map((point, i) => `${i ? "L" : "M"} ${x(i)} ${y(point.value)}`).join(" ")}" fill="none" stroke="${item.color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`).join("");
-  const labels = series[0].points.filter((_, i) => i % 4 === 0).map((point, i) => `<text x="${x(i * 4)}" y="${height - 9}" fill="#95a3b8" font-size="12" text-anchor="middle">${point.label}</text>`).join("");
+  const paths = series.map((item) => `<path d="${item.points.map((point, i) => `${i ? "L" : "M"} ${x(i)} ${y(point.value)}`).join(" ")}" fill="none" stroke="${item.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`).join("");
+  const labels = series[0].points.filter((_, i) => i % 4 === 0).map((point, i) => `<text x="${x(i * 4)}" y="${height - 9}" fill="#a7abb3" font-size="11" text-anchor="middle">${point.label}</text>`).join("");
   const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.label}</span>`).join("");
   $(id).innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="시계열 그래프">${grid}<line class="axis" x1="${pad}" y1="${height - pad}" x2="${width - pad / 2}" y2="${height - pad}"/>${paths}${labels}</svg><div class="legend">${legend}</div>`;
 }
@@ -65,10 +65,10 @@ function renderBarChart(id, rows, labelKey, valueKeys) {
   const max = Math.max(...rows.flatMap((row) => valueKeys.map((key) => row[key.key])));
   const bars = rows.map((row, r) => {
     let offset = labelW;
-    const label = `<text x="12" y="${r * rowH + 28}" fill="#cbd5e1" font-size="13">${row[labelKey]}</text>`;
+    const label = `<text x="12" y="${r * rowH + 28}" fill="#d8d9da" font-size="12">${row[labelKey]}</text>`;
     const pieces = valueKeys.map((key, i) => {
       const w = (row[key.key] / max) * (width - labelW - 80);
-      const rect = `<rect x="${offset}" y="${r * rowH + 10}" width="${w}" height="22" rx="4" fill="${key.color || palette[i]}" opacity="0.88"></rect>`;
+      const rect = `<rect x="${offset}" y="${r * rowH + 10}" width="${w}" height="22" rx="2" fill="${key.color || palette[i]}" opacity="0.9"></rect>`;
       const text = w > 54 ? `<text x="${offset + w - 8}" y="${r * rowH + 26}" fill="#061016" font-size="12" font-weight="800" text-anchor="end">${fmt.format(row[key.key])}</text>` : "";
       offset += w;
       return rect + text;

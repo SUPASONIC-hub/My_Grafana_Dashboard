@@ -13,14 +13,21 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
+    <aside class="side-rail" aria-label="Grafana navigation">
+      <a class="rail-logo" href="#overview" aria-label="대시보드 상단으로 이동">G</a>
+      <a href="#overview" title="요약">O</a>
+      <a href="#customers" title="고객">C</a>
+      <a href="#content" title="콘텐츠">P</a>
+      <a href="#behavior" title="행동">B</a>
+      <a href="#environment" title="환경">U</a>
+    </aside>
+
     <header class="topbar">
-      <a class="brand" href="#overview" aria-label="대시보드 상단으로 이동">
-        <img src="./Profile.jpg" alt="" />
-        <span>
-          <strong>My_Grafana_Dashboard</strong>
-          <small>Behavior Analytics Portfolio</small>
-        </span>
-      </a>
+      <div class="breadcrumb">
+        <span>Home</span>
+        <span>Dashboards</span>
+        <strong>My_Grafana_Dashboard</strong>
+      </div>
       <nav class="nav" aria-label="대시보드 섹션">
         <a href="#overview">요약</a>
         <a href="#customers">고객</a>
@@ -31,43 +38,44 @@
     </header>
 
     <main>
-      <section id="overview" class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">Grafana JSON 기반 포트폴리오 변환</p>
-          <h1>My_Grafana_Dashboard 고객 행동 분석 대시보드</h1>
-          <p>
-            원본 Grafana 패널 구조를 보존하면서 실제 ClickHouse 연결과 운영 데이터를 제거하고,
-            포트폴리오 검토자가 바로 탐색할 수 있는 다크모드 웹 대시보드로 재구성했습니다.
-          </p>
-        </div>
-        <aside class="operator-card" aria-label="프로필">
-          <img src="./Profile.jpg" alt="포트폴리오 프로필 이미지" />
+      <section id="overview" class="dashboard-header">
+        <div class="title-row">
           <div>
-            <span>Portfolio Demo</span>
-            <strong>가짜 시계열 데이터</strong>
-            <small>Search_UserID, 기간, 자동 갱신 인터랙션 포함</small>
+            <p class="eyebrow">Grafana snapshot recreation</p>
+            <h1>My_Grafana_Dashboard 고객 행동 분석 대시보드</h1>
           </div>
-        </aside>
-      </section>
+          <div class="dashboard-actions" aria-label="대시보드 작업">
+            <button id="refreshButton" type="button">Refresh data</button>
+            <label class="switch">
+              <input id="liveToggle" type="checkbox" checked />
+              <span>Live</span>
+            </label>
+          </div>
+        </div>
 
-      <section class="controls" aria-label="대시보드 필터">
-        <label>
-          유저 ID 검색
-          <input id="userSearch" type="search" placeholder="예: user-042" autocomplete="off" />
-        </label>
-        <label>
-          기간
-          <select id="rangeSelect">
-            <option value="7">최근 7일</option>
-            <option value="30" selected>최근 30일</option>
-            <option value="90">최근 90일</option>
-          </select>
-        </label>
-        <button id="refreshButton" type="button">새 데이터 생성</button>
-        <label class="switch">
-          <input id="liveToggle" type="checkbox" checked />
-          <span>자동 갱신</span>
-        </label>
+        <section class="controls" aria-label="대시보드 변수와 시간 범위">
+          <label>
+            Search_UserID
+            <input id="userSearch" type="search" placeholder="All" autocomplete="off" />
+          </label>
+          <label>
+            Time range
+            <select id="rangeSelect">
+              <option value="7">Last 7 days</option>
+              <option value="30" selected>Last 30 days</option>
+              <option value="90">Last 90 days</option>
+            </select>
+          </label>
+          <div class="time-readout">
+            <span>2026-05-01 03:00:00</span>
+            <span>to</span>
+            <span>2026-07-31 02:59:59</span>
+          </div>
+          <div class="snapshot-note">
+            <img src="./Profile.jpg" alt="" />
+            <span>Synthetic snapshot data</span>
+          </div>
+        </section>
       </section>
 
       <section class="kpis" aria-label="주요 지표">
