@@ -1,6 +1,6 @@
-# YOZM Wedding Customer Behavior Analytics Dashboard Portfolio
+# My_Grafana_Dashboard Customer Behavior Analytics Dashboard Portfolio
 
-Grafana에서 Export한 `dashboard-1785303972836.json`을 기반으로 만든 포트폴리오용 인터랙티브 웹 대시보드입니다. 원본 대시보드는 ClickHouse 기반 고객 행동 분석 패널로 구성되어 있었기 때문에, 실제 운영 데이터와 DB 연결 정보는 사용하지 않고 브라우저에서 생성되는 가짜 데이터로 동일한 분석 흐름을 재현했습니다.
+Grafana에서 Export한 대시보드 구조를 기반으로 만든 포트폴리오용 인터랙티브 웹 대시보드입니다. 원본 대시보드는 ClickHouse 기반 고객 행동 분석 패널로 구성되어 있었기 때문에, 실제 운영 데이터와 DB 연결 정보는 사용하지 않고 브라우저에서 생성되는 가짜 데이터로 동일한 분석 흐름을 재현했습니다.
 
 ## 데모 방향
 
@@ -18,9 +18,7 @@ Grafana에서 Export한 `dashboard-1785303972836.json`을 기반으로 만든 �
 ├── styles.css
 ├── app.js
 ├── render.yaml
-├── Profile.jpg
-├── basic.md
-└── dashboard-1785303972836.json
+└── Profile.jpg
 ```
 
 ## 로컬 확인
