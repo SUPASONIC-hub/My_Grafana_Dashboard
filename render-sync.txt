@@ -1,1 +1,1 @@
-render-sync-marker: portfolio-dashboard-20260730-presentation-r3
+render-sync-marker: portfolio-dashboard-20260730-chart-fix-r4

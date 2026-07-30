@@ -16,6 +16,7 @@ let activeInspectMode = "query";
 let activeViewDocMode = "summary";
 let renderContext = "dashboard";
 let renderRowLimit = null;
+const chartObservers = new WeakMap();
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -71,48 +72,76 @@ function renderNoData(container) {
   container.innerHTML = `<div class="no-data">No data</div>`;
 }
 
+function chartSize(container, fallbackWidth, fallbackHeight) {
+  return {
+    width: Math.max(420, Math.round(container.clientWidth || fallbackWidth)),
+    height: Math.max(160, Math.round(container.clientHeight || fallbackHeight)),
+  };
+}
+
+function renderResponsiveChart(container, fallbackWidth, fallbackHeight, draw) {
+  const paint = () => {
+    const { width, height } = chartSize(container, fallbackWidth, fallbackHeight);
+    if (container.dataset.chartWidth === String(width) && container.dataset.chartHeight === String(height)) return;
+    container.dataset.chartWidth = String(width);
+    container.dataset.chartHeight = String(height);
+    container.innerHTML = draw(width, height);
+  };
+  paint();
+  if (!("ResizeObserver" in window) || chartObservers.has(container)) return;
+  let frame = 0;
+  const observer = new ResizeObserver(() => {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(paint);
+  });
+  observer.observe(container);
+  chartObservers.set(container, observer);
+}
+
 function renderLineChart(container, series) {
-  const width = 1200;
-  const height = 280;
-  const pad = { top: 8, right: 6, bottom: 25, left: 34 };
-  const values = series.flatMap((item) => item.values);
-  const max = Math.max(...values) * 1.18;
-  const x = (index) => pad.left + (index / (series[0].values.length - 1)) * (width - pad.left - pad.right);
-  const y = (value) => height - pad.bottom - (value / max) * (height - pad.top - pad.bottom);
-  const grid = Array.from({ length: 6 }, (_, index) => {
-    const yy = pad.top + index * ((height - pad.top - pad.bottom) / 5);
-    return `<line class="grid-line" x1="${pad.left}" y1="${yy}" x2="${width - pad.right}" y2="${yy}"></line>`;
-  }).join("");
-  const ticks = Array.from({ length: 13 }, (_, index) => {
-    const xx = x(index * 2);
-    return `<text class="axis-text" x="${xx}" y="${height - 10}" text-anchor="middle">${String(index * 2).padStart(2, "0")}:00</text>`;
-  }).join("");
-  const paths = series.map((item) => {
-    const d = item.values.map((value, index) => `${index ? "L" : "M"} ${x(index)} ${y(value)}`).join(" ");
-    const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
-    const points = item.values.map((value, index) => {
-      const hour = `${String(index).padStart(2, "0")}:00`;
-      return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip="${attrText(`${item.name} / ${hour} / ${fmt.format(value)}`)}"></circle>`;
+  renderResponsiveChart(container, 1200, 280, (width, height) => {
+    const pad = { top: 8, right: 6, bottom: 25, left: 34 };
+    const values = series.flatMap((item) => item.values);
+    const max = Math.max(...values) * 1.18;
+    const x = (index) => pad.left + (index / (series[0].values.length - 1)) * (width - pad.left - pad.right);
+    const y = (value) => height - pad.bottom - (value / max) * (height - pad.top - pad.bottom);
+    const grid = Array.from({ length: 6 }, (_, index) => {
+      const yy = pad.top + index * ((height - pad.top - pad.bottom) / 5);
+      return `<line class="grid-line" x1="${pad.left}" y1="${yy}" x2="${width - pad.right}" y2="${yy}"></line>`;
     }).join("");
-    return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>${points}`;
-  }).join("");
-  const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.name}</span>`).join("");
-  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="time series">${grid}${paths}${ticks}</svg><div class="legend">${legend}</div></div>`;
+    const ticks = Array.from({ length: 13 }, (_, index) => {
+      const xx = x(index * 2);
+      return `<text class="axis-text" x="${xx}" y="${height - 10}" text-anchor="middle">${String(index * 2).padStart(2, "0")}:00</text>`;
+    }).join("");
+    const paths = series.map((item) => {
+      const d = item.values.map((value, index) => `${index ? "L" : "M"} ${x(index)} ${y(value)}`).join(" ");
+      const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
+      const points = item.values.map((value, index) => {
+        const hour = `${String(index).padStart(2, "0")}:00`;
+        return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip="${attrText(`${item.name} / ${hour} / ${fmt.format(value)}`)}"></circle>`;
+      }).join("");
+      return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>${points}`;
+    }).join("");
+    const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.name}</span>`).join("");
+    return `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="time series">${grid}${paths}${ticks}</svg><div class="legend">${legend}</div></div>`;
+  });
 }
 
 function renderBarChart(container, rows, mode = "horizontal") {
-  const width = 1200;
-  const height = Math.max(220, rows.length * 24 + 28);
-  const left = Math.min(185, Math.max(118, Math.round(width * 0.14)));
-  const max = Math.max(...rows.map((row) => row.value));
-  const bars = rows.map((row, index) => {
-    const y = 8 + index * 24;
-    const w = (row.value / max) * (width - left - 12);
-    return `<text class="axis-text" x="${left - 8}" y="${y + 13}" text-anchor="end">${row.label}</text>
-      <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}" data-tip="${attrText(`${row.label} / ${fmt.format(row.value)}`)}"></rect>
-      <text class="axis-text bar-value" x="${Math.min(width - 4, left + w + 7)}" y="${y + 12}" text-anchor="end">${fmt.format(row.value)}</text>`;
-  }).join("");
-  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
+  renderResponsiveChart(container, 1200, Math.max(220, rows.length * 24 + 28), (width, height) => {
+    const left = Math.min(185, Math.max(118, Math.round(width * 0.14)));
+    const max = Math.max(...rows.map((row) => row.value));
+    const rowGap = Math.max(16, (height - 16) / rows.length);
+    const barHeight = Math.max(8, Math.min(15, rowGap - 7));
+    const bars = rows.map((row, index) => {
+      const y = 8 + index * rowGap;
+      const w = (row.value / max) * (width - left - 12);
+      return `<text class="axis-text" x="${left - 8}" y="${y + barHeight}" text-anchor="end">${row.label}</text>
+        <rect x="${left}" y="${y}" width="${w}" height="${barHeight}" fill="${row.color || palette[index % palette.length]}" data-tip="${attrText(`${row.label} / ${fmt.format(row.value)}`)}"></rect>
+        <text class="axis-text bar-value" x="${Math.min(width - 4, left + w + 7)}" y="${y + barHeight - 1}" text-anchor="end">${fmt.format(row.value)}</text>`;
+    }).join("");
+    return `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
+  });
 }
 
 function lineValues(base, points = 24, spread = 0.85) {
