@@ -109,16 +109,18 @@ function renderLineChart(container, series) {
       const yy = pad.top + index * ((height - pad.top - pad.bottom) / 5);
       return `<line class="grid-line" x1="${pad.left}" y1="${yy}" x2="${width - pad.right}" y2="${yy}"></line>`;
     }).join("");
-    const ticks = Array.from({ length: 13 }, (_, index) => {
-      const xx = x(index * 2);
-      return `<text class="axis-text" x="${xx}" y="${height - 10}" text-anchor="middle">${String(index * 2).padStart(2, "0")}:00</text>`;
+    const tickStep = width < 640 ? 6 : width < 920 ? 4 : 2;
+    const ticks = Array.from({ length: Math.floor(24 / tickStep) + 1 }, (_, index) => index * tickStep).filter((hour) => hour <= 24).map((hour) => {
+      const pointIndex = Math.min(series[0].values.length - 1, hour);
+      const xx = x(pointIndex);
+      return `<text class="axis-text" x="${xx}" y="${height - 10}" text-anchor="middle">${String(hour).padStart(2, "0")}:00</text>`;
     }).join("");
     const paths = series.map((item) => {
       const d = item.values.map((value, index) => `${index ? "L" : "M"} ${x(index)} ${y(value)}`).join(" ");
       const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
       const points = item.values.map((value, index) => {
         const hour = `${String(index).padStart(2, "0")}:00`;
-        return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip="${attrText(`${item.name} / ${hour} / ${fmt.format(value)}`)}"></circle>`;
+        return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip="${attrText(`${item.name} / ${hour} / ${fmt.format(value)}`)}" data-tip-color="${attrText(item.color)}"></circle>`;
       }).join("");
       return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>${points}`;
     }).join("");
@@ -136,8 +138,9 @@ function renderBarChart(container, rows, mode = "horizontal") {
     const bars = rows.map((row, index) => {
       const y = 8 + index * rowGap;
       const w = (row.value / max) * (width - left - 12);
+      const color = row.color || palette[index % palette.length];
       return `<text class="axis-text" x="${left - 8}" y="${y + barHeight}" text-anchor="end">${row.label}</text>
-        <rect x="${left}" y="${y}" width="${w}" height="${barHeight}" fill="${row.color || palette[index % palette.length]}" data-tip="${attrText(`${row.label} / ${fmt.format(row.value)}`)}"></rect>
+        <rect x="${left}" y="${y}" width="${w}" height="${barHeight}" fill="${color}" data-tip="${attrText(`${row.label} / ${fmt.format(row.value)}`)}" data-tip-color="${attrText(color)}"></rect>
         <text class="axis-text bar-value" x="${Math.min(width - 4, left + w + 7)}" y="${y + barHeight - 1}" text-anchor="end">${fmt.format(row.value)}</text>`;
     }).join("");
     return `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
@@ -879,11 +882,21 @@ function panelInsight(panel) {
   };
 }
 
-function panelSummaryText(panel) {
-  const insight = panelInsight(panel);
+function panelEvidence(panel) {
   const doc = panelDoc(panel);
   const spec = doc?.panelSpec || {};
+  const columns = Array.isArray(spec.columns) ? spec.columns.length : 0;
+  const thresholds = spec.fieldConfig?.defaults?.thresholds?.steps?.length || panel.settings?.thresholds?.length || 0;
+  const overrides = Array.isArray(spec.fieldConfig?.overrides) ? spec.fieldConfig.overrides.length : 0;
   const queryLines = doc?.query ? doc.query.split(/\r?\n/).filter(Boolean).length : 0;
+  return { columns, thresholds, overrides, queryLines };
+}
+
+function panelSummaryText(panel) {
+  const insight = panelInsight(panel);
+  const evidence = panelEvidence(panel);
+  const doc = panelDoc(panel);
+  const spec = doc?.panelSpec || {};
   return [
     `Purpose`,
     insight.purpose,
@@ -895,7 +908,7 @@ function panelSummaryText(panel) {
     insight.implementation,
     ``,
     `Evidence`,
-    `Query 탭에는 보안 치환된 SQL ${queryLines ? `${queryLines}라인` : "원문"}이 표시됩니다.`,
+    `Query 탭에는 보안 치환된 SQL ${evidence.queryLines ? `${evidence.queryLines}라인` : "원문"}이 표시됩니다.`,
     `Panel Spec 탭에는 ${spec.gridPos ? "gridPos, " : ""}fieldConfig, thresholds, override 설정이 표시됩니다.`,
   ].join("\n");
 }
@@ -907,6 +920,13 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
   $("viewPurpose").textContent = insight.purpose;
   $("viewMetrics").textContent = insight.metrics;
   $("viewImplementation").textContent = insight.implementation;
+  const evidence = panelEvidence(panel);
+  $("viewEvidenceBadges").innerHTML = [
+    ["Query lines", evidence.queryLines],
+    ["Overrides", evidence.overrides],
+    ["Thresholds", evidence.thresholds],
+    ["Columns", evidence.columns],
+  ].map(([label, value]) => `<span><strong>${fmt.format(value)}</strong>${label}</span>`).join("");
   const modeLabels = {
     summary: "Summary: purpose / metrics / implementation",
     query: "Query: sanitized SQL",
@@ -1075,7 +1095,7 @@ document.addEventListener("pointerover", (event) => {
     tip.className = "chart-tooltip";
     document.body.appendChild(tip);
   }
-  tip.textContent = target.dataset.tip;
+  tip.innerHTML = `<i style="background:${attrText(target.dataset.tipColor || colors.blue)}"></i><span>${attrText(target.dataset.tip)}</span>`;
   tip.hidden = false;
 });
 document.addEventListener("pointermove", (event) => {
