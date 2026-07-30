@@ -151,7 +151,7 @@ function recommendationRows() {
 }
 
 function pageRows(count) {
-  const paths = ["/", "/product/wedding-hall", "/product/studio", "/estimate/compare", "/review/detail", "/search/result", "/my/scrap"];
+  const paths = ["/", "/product/detail", "/product/studio", "/estimate/compare", "/review/detail", "/search/result", "/my/scrap"];
   return Array.from({ length: count }, (_, index) => ({
     rank: index + 1,
     path: pick(paths, index),
@@ -175,8 +175,8 @@ const commonSettings = {
 const panels = [
   {
     id: "summary",
-    title: "1-1. 플랫폼별 주요 접속 지표 Summary",
-    span: [1, 1, 24, 4],
+    title: "1-1. 플랫폼별 세션 비중 (Session Share by Platform)",
+    span: [1, 1, 12, 4],
     type: "table",
     query: "SELECT platform, COUNT(DISTINCT session_id) sessions, COUNT(*) page_views, AVG(duration_sec) avg_duration FROM demo_events GROUP BY 1 ORDER BY sessions DESC;",
     settings: { ...commonSettings, visualization: "table", thresholds: [60, 80], unit: "short" },
@@ -199,8 +199,31 @@ const panels = [
     },
   },
   {
+    id: "os-duration",
+    title: "1-2. 플랫폼별 평균 세션 체류시간 (Average Session Duration by Platform)",
+    span: [13, 1, 12, 4],
+    type: "table",
+    query: "SELECT platform, AVG(duration_sec) avg_duration, APPROX_QUANTILES(duration_sec, 4) duration_quantiles FROM demo_sessions GROUP BY 1;",
+    settings: { ...commonSettings, visualization: "table", cellHeight: "sm" },
+    render(container) {
+      renderTable(container, [
+        { key: "platform", label: "플랫폼" },
+        { key: "avg", label: "평균 세션 체류시간" },
+        { key: "median", label: "중앙값" },
+        { key: "max", label: "최대값" },
+        { key: "share", label: "비중", render: makeSpark },
+      ], ["web", "ios", "aos"].map((platform, index) => ({
+        platform,
+        avg: `${number(7 + index, 0.45)} minutes`,
+        median: `${number(4 + index, 0.4)} minutes`,
+        max: `${number(44 + index * 8, 0.35)} minutes`,
+        share: 48 + rand() * 46,
+      })));
+    },
+  },
+  {
     id: "active",
-    title: "1-2. 시간대별 활성 세션 수",
+    title: "1-3. 시간별 활성 세션 추이 (Traffic Trend)",
     span: [1, 5, 24, 8],
     type: "timeseries",
     query: "SELECT TIMESTAMP_TRUNC(event_time, HOUR) time, platform, COUNT(DISTINCT session_id) value FROM demo_events GROUP BY 1, 2 ORDER BY 1;",
@@ -214,9 +237,125 @@ const panels = [
     },
   },
   {
+    id: "pv-summary",
+    title: "1-4. 플랫폼별 세션당 평균 PV (Average Page Views per Session by Platform)",
+    span: [1, 13, 8, 4],
+    type: "table",
+    query: "SELECT platform, COUNT(*) page_views, COUNT(DISTINCT session_id) sessions, SAFE_DIVIDE(COUNT(*), COUNT(DISTINCT session_id)) pv_per_session FROM demo_events GROUP BY 1;",
+    settings: { ...commonSettings, visualization: "table" },
+    render(container) {
+      renderTable(container, [
+        { key: "platform", label: "플랫폼" },
+        { key: "pv", label: "평균 PV", num: true },
+        { key: "sessions", label: "세션 수", num: true, format: fmt.format },
+      ], ["web", "ios", "aos"].map((platform, index) => ({
+        platform,
+        pv: (2.1 + index * 0.4 + rand()).toFixed(2),
+        sessions: number(42000 - index * 6200, 0.35),
+      })));
+    },
+  },
+  {
+    id: "duration-bucket",
+    title: "1-5. 플랫폼별 세션 체류시간 분포 (Session Duration Distribution by Platform)",
+    span: [9, 13, 8, 4],
+    type: "table",
+    query: "SELECT duration_bucket, platform, COUNT(*) sessions FROM session_duration_bucket GROUP BY 1, 2;",
+    settings: { ...commonSettings, visualization: "table" },
+    render(container) {
+      renderTable(container, [
+        { key: "bucket", label: "구간" },
+        { key: "web", label: "web", num: true, format: fmt.format },
+        { key: "ios", label: "ios", num: true, format: fmt.format },
+        { key: "aos", label: "aos", num: true, format: fmt.format },
+      ], ["0-30s", "30s-3m", "3m-10m", "10m+"].map((bucket, index) => ({
+        bucket,
+        web: number(12400 - index * 1700, 0.3),
+        ios: number(9600 - index * 1300, 0.3),
+        aos: number(8100 - index * 1100, 0.3),
+      })));
+    },
+  },
+  {
+    id: "threshold-summary",
+    title: "1-6. 체류시간 기준 초과/이하 세션 비중 (Session Duration Above/Below Benchmark)",
+    span: [17, 13, 8, 4],
+    type: "table",
+    query: "SELECT platform, SUM(duration_sec >= 600) above_threshold, SUM(duration_sec < 600) below_threshold FROM demo_sessions GROUP BY 1;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
+    render(container) {
+      renderTable(container, [
+        { key: "platform", label: "플랫폼" },
+        { key: "above", label: "기준 초과", render: makeSpark },
+        { key: "below", label: "기준 이하", render: makeSpark },
+      ], ["web", "ios", "aos"].map((platform) => {
+        const above = 32 + rand() * 44;
+        return { platform, above, below: 100 - above };
+      }));
+    },
+  },
+  {
+    id: "pipeline",
+    title: "2-1. 고객 유형 파이프라인 비중 변화 (Customer Type Pipeline Share Trend)",
+    span: [1, 17, 24, 8],
+    type: "timeseries",
+    query: "SELECT event_hour, customer_type, COUNT(DISTINCT session_id) sessions FROM customer_pipeline_events GROUP BY 1, 2 ORDER BY 1;",
+    settings: { ...commonSettings, visualization: "timeseries", stacking: "normal" },
+    render(container) {
+      renderLineChart(container, [
+        { name: "new", color: colors.green, values: lineValues(900) },
+        { name: "returning", color: colors.blue, values: lineValues(760) },
+        { name: "active", color: colors.yellow, values: lineValues(680) },
+        { name: "conversion", color: colors.red, values: lineValues(280) },
+      ]);
+    },
+  },
+  {
+    id: "member-status",
+    title: "2-2. 고객 타입별 누적 회원 현황 (Cumulative Members by Customer Type)",
+    span: [1, 25, 12, 6],
+    type: "table",
+    query: "SELECT customer_type, COUNT(DISTINCT user_id) users, COUNT(DISTINCT IF(active, user_id, NULL)) active_users FROM user_profile GROUP BY 1;",
+    settings: { ...commonSettings, visualization: "table" },
+    render(container) {
+      renderTable(container, [
+        { key: "type", label: "고객 타입" },
+        { key: "users", label: "누적 회원", num: true, format: fmt.format },
+        { key: "active", label: "활성 회원", num: true, format: fmt.format },
+        { key: "rate", label: "활성 비중", render: makeSpark },
+      ], ["신규", "재방문", "관심높음", "상담예정", "비회원"].map((type, index) => ({
+        type,
+        users: number(18400 - index * 2100, 0.32),
+        active: number(6100 - index * 700, 0.35),
+        rate: 22 + rand() * 64,
+      })));
+    },
+  },
+  {
+    id: "above-average",
+    title: "2-3. 평균 체류시간 초과 세션 유형별 요약 및 고객 목록 (Above-Average Session Summary by Customer Type)",
+    span: [13, 25, 12, 6],
+    type: "table",
+    query: "SELECT customer_type, COUNT(*) sessions, AVG(duration_sec) avg_duration FROM demo_sessions WHERE duration_sec > dashboard_avg_duration GROUP BY 1;",
+    settings: { ...commonSettings, visualization: "table" },
+    render(container) {
+      renderTable(container, [
+        { key: "type", label: "고객 타입" },
+        { key: "sessions", label: "초과 세션", num: true, format: fmt.format },
+        { key: "duration", label: "평균 체류시간" },
+        { key: "share", label: "비중", render: makeSpark },
+      ], ["신규", "재방문", "관심높음", "상담예정"].map((type, index) => ({
+        type,
+        sessions: number(4200 - index * 530, 0.35),
+        duration: `${number(8 + index, 0.4)} minutes`,
+        share: 28 + rand() * 60,
+      })));
+    },
+  },
+  {
     id: "profile",
     title: "2-4. 유저 마스터 정보 (Status Profile)",
-    span: [1, 13, 24, 11],
+    span: [1, 31, 24, 11],
     type: "table",
     query: "SELECT user_id, contract_status, user_type_id, sessions, page_views, avg_session_pv, last_visit_at FROM user_profile ORDER BY last_visit_at DESC LIMIT 100;",
     settings: { ...commonSettings, visualization: "table", frozenColumns: 2, cellHeight: "sm" },
@@ -243,7 +382,7 @@ const panels = [
   {
     id: "recommend",
     title: "2-5. 개인 행동 기반 추천 후보 (Behavior-based Recommendation Candidates)_개인 전용",
-    span: [1, 24, 24, 7],
+    span: [1, 42, 24, 7],
     type: "table",
     query: "WITH category_affinity AS (...) SELECT * FROM recommendation_candidates WHERE user_id = ${Search_UserID} ORDER BY category_score DESC, product_score DESC;",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell", thresholds: [50, 75, 90] },
@@ -269,8 +408,8 @@ const panels = [
   },
   {
     id: "journey",
-    title: "2-6. 유저 세션별 페이지 이동 경로",
-    span: [1, 31, 24, 10],
+    title: "2-6. 유저 세션별 페이지 이동 경로 (User Session Page Journey)_개인 전용",
+    span: [1, 49, 24, 9],
     type: "table",
     query: "SELECT user_id, session_id, STRING_AGG(page_path, ' > ' ORDER BY event_time) journey, MIN(event_time) start_at, MAX(event_time) end_at FROM demo_events GROUP BY 1, 2;",
     settings: { ...commonSettings, visualization: "table", wrapText: false },
@@ -283,7 +422,7 @@ const panels = [
         { key: "duration", label: "체류시간" },
         { key: "pv", label: "PV", num: true },
       ], Array.from({ length: 32 }, (_, index) => {
-        const paths = ["/", "/search", "/product/wedding-hall", "/estimate", "/consulting", "/my/scrap"];
+        const paths = ["/", "/search", "/product/detail", "/estimate", "/consulting", "/my/scrap"];
         return {
           rank: index + 1,
           userId: `M10000${number(1000 + index, 0.2)}`,
@@ -296,9 +435,29 @@ const panels = [
     },
   },
   {
+    id: "page-performance",
+    title: "3-1. 페이지별 세션당 평균 조회수(Pages by Views per Session)",
+    span: [1, 58, 24, 8],
+    type: "table",
+    query: "SELECT page_path, page_title, COUNT(*) page_views, COUNT(DISTINCT session_id) sessions, AVG(scroll_depth) scroll_depth FROM page_events GROUP BY 1, 2;",
+    settings: { ...commonSettings, visualization: "table", links: true },
+    render(container) {
+      renderTable(container, [
+        { key: "rank", label: "순번", num: true },
+        { key: "path", label: "페이지 경로", render: (value) => `<span class="link-cell">${value}</span>` },
+        { key: "title", label: "페이지 제목" },
+        { key: "pv", label: "전체 PV", num: true, format: fmt.format },
+        { key: "session", label: "조회 세션 수", num: true, format: fmt.format },
+        { key: "avg", label: "세션당 PV", num: true },
+        { key: "scroll", label: "평균 스크롤", render: makeSpark },
+        { key: "bounce", label: "이탈률", render: makeSpark },
+      ], pageRows(45));
+    },
+  },
+  {
     id: "entry",
-    title: "3-2. 진입/이탈 페이지 분석",
-    span: [1, 41, 12, 9],
+    title: "3-2. 진입/이탈 페이지 분석 (Entry & Exit)",
+    span: [1, 66, 24, 9],
     type: "barchart",
     query: "SELECT page_path, SUM(is_entry) entry_count, SUM(is_exit) exit_count FROM session_pages GROUP BY 1 ORDER BY entry_count DESC LIMIT 40;",
     settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal" },
@@ -311,9 +470,28 @@ const panels = [
     },
   },
   {
+    id: "scroll-depth",
+    title: "3-3. 페이지별 스크롤 탐색 깊이(Pages by Scroll Engagement)",
+    span: [1, 1, 24, 16],
+    type: "table",
+    query: "SELECT page_title, page_url, total_views, scroll_event_count, view_sessions, scroll_sessions, avg_scroll_depth, deep_scroll_rate FROM page_scroll_base ORDER BY total_views DESC;",
+    settings: { ...commonSettings, visualization: "table", links: true, colorMode: "cell" },
+    render(container) {
+      renderTable(container, [
+        { key: "rank", label: "순번", num: true },
+        { key: "title", label: "페이지 제목" },
+        { key: "path", label: "페이지 URL", render: (value) => `<span class="link-cell">${value}</span>` },
+        { key: "pv", label: "전체 조회수", num: true, format: fmt.format },
+        { key: "session", label: "조회 세션 수", num: true, format: fmt.format },
+        { key: "scroll", label: "평균 스크롤 깊이", render: makeSpark },
+        { key: "bounce", label: "깊은 탐색 비율", render: makeSpark },
+      ], pageRows(55));
+    },
+  },
+  {
     id: "search",
-    title: "4-2. 검색어 및 무결과율",
-    span: [13, 41, 12, 9],
+    title: "4-2. 검색어 및 무결과율 (Search Keywords & Zero-result Rate)",
+    span: [1, 75, 12, 9],
     type: "table",
     query: "SELECT keyword, COUNT(*) searches, SAFE_DIVIDE(SUM(no_result), COUNT(*)) zero_result_rate FROM search_events GROUP BY 1 ORDER BY searches DESC;",
     settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
@@ -335,9 +513,74 @@ const panels = [
     },
   },
   {
+    id: "keyword-type",
+    title: "4-3. 고객 타입별 검색어(Search Keywords by Customer Type)",
+    span: [13, 75, 12, 9],
+    type: "table",
+    query: "SELECT customer_type, keyword, COUNT(*) searches, AVG(result_click_rate) click_rate FROM search_events GROUP BY 1, 2 ORDER BY searches DESC;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
+    render(container) {
+      renderTable(container, [
+        { key: "type", label: "고객 타입" },
+        { key: "keyword", label: "검색어" },
+        { key: "searches", label: "검색 수", num: true, format: fmt.format },
+        { key: "rate", label: "결과 클릭률", render: makeSpark },
+      ], Array.from({ length: 38 }, (_, index) => ({
+        type: ["신규", "재방문", "관심높음", "상담예정"][index % 4],
+        keyword: ["드레스", "스튜디오", "견적", "메이크업", "리뷰", "이벤트"][index % 6],
+        searches: number(3200 - index * 48, 0.65),
+        rate: 18 + rand() * 70,
+      })));
+    },
+  },
+  {
+    id: "cta",
+    title: "4-4. CTA·버튼·배너 클릭(CTA, Button & Banner Clicks)",
+    span: [1, 84, 12, 8],
+    type: "table",
+    query: "SELECT click_target, page_path, COUNT(*) clicks, COUNT(DISTINCT user_id) users FROM click_events GROUP BY 1, 2 ORDER BY clicks DESC;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
+    render(container) {
+      renderTable(container, [
+        { key: "target", label: "클릭 대상" },
+        { key: "page", label: "발생 화면" },
+        { key: "clicks", label: "클릭 수", num: true, format: fmt.format },
+        { key: "ctr", label: "CTR", render: makeSpark },
+      ], Array.from({ length: 34 }, (_, index) => ({
+        target: ["상담 신청", "견적 비교", "배너", "더보기", "예약 문의"][index % 5],
+        page: ["/", "/search", "/product/detail", "/estimate"][index % 4],
+        clicks: number(9800 - index * 160, 0.55),
+        ctr: 8 + rand() * 48,
+      })));
+    },
+  },
+  {
+    id: "product-click",
+    title: "4-5. 상품·업체 클릭(Product & Vendor Clicks)",
+    span: [13, 84, 12, 8],
+    type: "table",
+    query: "SELECT product_category, product_id, COUNT(*) clicks, COUNT(DISTINCT user_id) users FROM product_click_events GROUP BY 1, 2 ORDER BY clicks DESC;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
+    render(container) {
+      renderTable(container, [
+        { key: "category", label: "상품 카테고리" },
+        { key: "product", label: "상품 식별값" },
+        { key: "clicks", label: "클릭 수", num: true, format: fmt.format },
+        { key: "users", label: "유저 수", num: true, format: fmt.format },
+        { key: "score", label: "관심도", render: makeSpark },
+      ], Array.from({ length: 34 }, (_, index) => ({
+        category: ["드레스", "스튜디오", "메이크업", "홀", "기타"][index % 5],
+        product: `TEMP_PRODUCT_${String(index + 1).padStart(3, "0")}`,
+        clicks: number(7200 - index * 120, 0.62),
+        users: number(3100 - index * 54, 0.55),
+        score: 20 + rand() * 76,
+      })));
+    },
+  },
+  {
     id: "events",
-    title: "4-1. 이벤트 유형별 발생 수",
-    span: [1, 50, 24, 8],
+    title: "4-1. 이벤트 유형별 발생 수 (Event Type Distribution)",
+    span: [1, 92, 24, 8],
     type: "barchart",
     query: "SELECT event_name, COUNT(*) event_count FROM demo_events GROUP BY 1 ORDER BY event_count DESC;",
     settings: { ...commonSettings, visualization: "barGauge", displayMode: "lcd" },
@@ -352,8 +595,8 @@ const panels = [
   },
   {
     id: "quality",
-    title: "4-6. 검색 결과 품질 지표",
-    span: [1, 58, 12, 9],
+    title: "4-6. 검색 결과 품질 지표 (Search Result Quality Metrics)",
+    span: [1, 100, 12, 9],
     type: "table",
     query: "SELECT keyword, AVG(result_count) avg_results, AVG(first_click_rank) first_click_rank, AVG(product_click_rate) product_click_rate FROM search_quality GROUP BY 1;",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
@@ -374,18 +617,76 @@ const panels = [
     },
   },
   {
-    id: "empty",
-    title: "4-9. 최종 스크랩 상태별 발생 화면 목록",
-    span: [13, 58, 12, 9],
+    id: "conversion",
+    title: "4-7. 검색어별 상품 클릭 전환 (Search-to-Product Click Conversion by Keyword)",
+    span: [1, 1, 24, 17],
+    type: "table",
+    query: "SELECT keyword, search_sessions, result_click_sessions, product_click_sessions, product_click_conversion_rate FROM search_to_product_conversion ORDER BY search_sessions DESC;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
+    render(container) {
+      renderTable(container, [
+        { key: "rank", label: "순번", num: true },
+        { key: "keyword", label: "검색어" },
+        { key: "search", label: "검색 세션", num: true, format: fmt.format },
+        { key: "result", label: "결과 클릭 세션", num: true, format: fmt.format },
+        { key: "product", label: "상품 클릭 세션", num: true, format: fmt.format },
+        { key: "conversion", label: "상품 클릭 전환율", render: makeSpark },
+      ], Array.from({ length: 60 }, (_, index) => {
+        const search = number(7200 - index * 82, 0.64);
+        const conversion = 8 + rand() * 58;
+        return {
+          rank: index + 1,
+          keyword: ["드레스", "스튜디오", "견적", "메이크업", "리뷰", "한복"][index % 6],
+          search,
+          result: Math.round(search * (0.28 + rand() * 0.42)),
+          product: Math.round(search * conversion / 100),
+          conversion,
+        };
+      }));
+    },
+  },
+  {
+    id: "scrap-gauge",
+    title: "4-8. 스크랩 상태 요약 (Scrap Status Summary)",
+    span: [1, 1, 24, 11],
+    type: "bargauge",
+    query: "SELECT latest_scrap_status, COUNT(*) scrap_count, COUNT(DISTINCT user_id) users FROM scrap_events GROUP BY 1 ORDER BY scrap_count DESC;",
+    settings: { ...commonSettings, visualization: "barGauge", displayMode: "lcd" },
+    render(container) {
+      renderBarChart(container, [
+        { label: "스크랩 유지", value: number(4557, 0.2), color: colors.green },
+        { label: "스크랩 추가", value: number(988, 0.32), color: colors.yellow },
+        { label: "스크랩 취소", value: number(828, 0.36), color: colors.red },
+        { label: "재스크랩", value: number(729, 0.35), color: colors.orange },
+        { label: "상태 미확인", value: number(508, 0.4), color: colors.purple },
+      ]);
+    },
+  },
+  {
+    id: "scrap-source",
+    title: "4-9. 최종 스크랩 상태별 발생 화면 목록 (Latest Scrap Status by Source Page)",
+    span: [13, 100, 12, 9],
     type: "table",
     query: "SELECT final_scrap_status, page_path, COUNT(*) FROM scrap_state_transitions GROUP BY 1, 2;",
     settings: { ...commonSettings, visualization: "table", noDataState: true },
-    render: renderNoData,
+    render(container) {
+      renderTable(container, [
+        { key: "status", label: "최종 스크랩 상태" },
+        { key: "page", label: "발생 화면" },
+        { key: "count", label: "건수", num: true, format: fmt.format },
+        { key: "share", label: "비중", render: makeSpark },
+      ], Array.from({ length: 34 }, (_, index) => ({
+        status: ["유지", "추가", "취소", "재스크랩"][index % 4],
+        page: ["/product/detail", "/search/result", "/my/scrap", "/review/detail"][index % 4],
+        count: number(2200 - index * 37, 0.7),
+        share: 12 + rand() * 76,
+      })));
+    },
   },
   {
     id: "environment",
-    title: "5-1. 플랫폼·기기 환경별 세션 분포",
-    span: [1, 67, 24, 10],
+    title: "5-1. 플랫폼·기기 환경별 세션 분포 (Platform & Device Environment)",
+    span: [1, 109, 24, 10],
     type: "barchart",
     query: "SELECT platform, device_type, browser, COUNT(DISTINCT session_id) sessions FROM session_environment GROUP BY 1, 2, 3 ORDER BY sessions DESC;",
     settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal", unit: "sessions" },
@@ -400,11 +701,68 @@ const panels = [
   },
 ];
 
-function makePanel(panel) {
+const layoutRows = [
+  {
+    title: "Row 1. 주요 접속 지표 요약 (Executive Summary)",
+    items: [
+      { id: "summary", x: 0, y: 0, w: 9, h: 7 },
+      { id: "os-duration", x: 9, y: 0, w: 15, h: 7 },
+      { id: "active", x: 0, y: 7, w: 24, h: 13 },
+      { id: "pv-summary", x: 0, y: 20, w: 24, h: 7 },
+      { id: "duration-bucket", x: 0, y: 27, w: 24, h: 7 },
+      { id: "threshold-summary", x: 0, y: 34, w: 24, h: 7 },
+    ],
+  },
+  {
+    title: "Row 2. 고객 타입 및 회원 상태 (Customer Type & Member Status)",
+    items: [
+      { id: "pipeline", x: 0, y: 0, w: 24, h: 17 },
+      { id: "member-status", x: 0, y: 17, w: 24, h: 13 },
+      { id: "above-average", x: 0, y: 30, w: 24, h: 13 },
+      { id: "profile", x: 0, y: 43, w: 24, h: 11 },
+      { id: "recommend", x: 0, y: 54, w: 24, h: 12 },
+      { id: "journey", x: 0, y: 66, w: 24, h: 14 },
+    ],
+  },
+  {
+    title: "Row 3. 화면·콘텐츠 성과 (Page & Content Performance)",
+    items: [
+      { id: "page-performance", x: 0, y: 0, w: 24, h: 14 },
+      { id: "entry", x: 0, y: 14, w: 24, h: 17 },
+      { id: "scroll-depth", x: 0, y: 31, w: 24, h: 16 },
+    ],
+  },
+  {
+    title: "Row 4. 행동·검색·클릭 분석 (Behavior, Search & Click Analytics)",
+    items: [
+      { id: "events", x: 0, y: 0, w: 24, h: 17 },
+      { id: "search", x: 0, y: 17, w: 24, h: 15 },
+      { id: "keyword-type", x: 0, y: 32, w: 24, h: 18 },
+      { id: "cta", x: 0, y: 50, w: 24, h: 14 },
+      { id: "product-click", x: 0, y: 64, w: 24, h: 13 },
+      { id: "quality", x: 0, y: 77, w: 24, h: 15 },
+      { id: "conversion", x: 0, y: 92, w: 24, h: 17 },
+      { id: "scrap-gauge", x: 0, y: 109, w: 24, h: 11 },
+      { id: "scrap-source", x: 0, y: 120, w: 24, h: 14 },
+    ],
+  },
+  {
+    title: "Row 5. UX 및 환경 데이터 (UX & Environment Metrics)",
+    items: [
+      { id: "environment", x: 0, y: 0, w: 24, h: 17 },
+    ],
+  },
+];
+
+const panelById = new Map(panels.map((panel) => [panel.id, panel]));
+
+function makePanel(panel, placement) {
   const node = $("panelTemplate").content.firstElementChild.cloneNode(true);
   node.dataset.panelId = panel.id;
-  node.style.gridColumn = `${panel.span[0]} / span ${panel.span[2]}`;
-  node.style.gridRow = `${panel.span[1]} / span ${panel.span[3]}`;
+  if (placement) {
+    node.style.gridColumn = `${placement.x + 1} / span ${placement.w}`;
+    node.style.gridRow = `${placement.y + 1} / span ${placement.h}`;
+  }
   node.querySelector("h2").textContent = panel.title;
   const body = node.querySelector(".panel-body");
   panel.render(body);
@@ -420,7 +778,23 @@ function renderDashboard() {
   seed = 26 + $("userSearch").value.length * 101;
   const dashboard = $("dashboard");
   dashboard.innerHTML = "";
-  panels.forEach((panel) => dashboard.appendChild(makePanel(panel)));
+  layoutRows.forEach((row) => {
+    const section = document.createElement("section");
+    section.className = "dashboard-section";
+    const titlebar = document.createElement("div");
+    titlebar.className = "row-titlebar";
+    titlebar.textContent = row.title;
+    const grid = document.createElement("div");
+    grid.className = "row-grid";
+    const rowHeight = Math.max(...row.items.map((item) => item.y + item.h));
+    grid.style.gridTemplateRows = `repeat(${rowHeight}, 30px)`;
+    row.items.forEach((item) => {
+      const panel = panelById.get(item.id);
+      if (panel) grid.appendChild(makePanel(panel, item));
+    });
+    section.append(titlebar, grid);
+    dashboard.appendChild(section);
+  });
 }
 
 function closePanelMenu() {
@@ -456,7 +830,7 @@ function openPanelMenu(panel, anchor) {
 
 function openPanelView(panelId) {
   activePanelId = panelId;
-  const panel = panels.find((item) => item.id === panelId);
+  const panel = panelById.get(panelId);
   if (!panel) return;
   const slot = $("viewPanelSlot");
   slot.innerHTML = "";
@@ -497,7 +871,7 @@ function inspectPayload(panel, mode) {
 function openInspect(panelId, mode = activeInspectMode) {
   activePanelId = panelId;
   activeInspectMode = mode;
-  const panel = panels.find((item) => item.id === panelId);
+  const panel = panelById.get(panelId);
   if (!panel) return;
   $("inspectTitle").textContent = `${panel.title} - Inspect`;
   $("queryTab").classList.toggle("active", mode === "query");
