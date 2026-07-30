@@ -1,1 +1,1 @@
-render-sync-marker: portfolio-dashboard-20260730-evidence-r14
+render-sync-marker: portfolio-dashboard-20260730-view-performance-r15

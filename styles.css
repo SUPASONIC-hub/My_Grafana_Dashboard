@@ -45,6 +45,11 @@ button:hover {
   border-color: #465061;
   background: #29313d;
 }
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid rgba(87, 148, 242, 0.9);
+  outline-offset: 2px;
+}
 
 .grafana-topbar {
   position: sticky;
@@ -343,6 +348,7 @@ main {
   border: 1px solid var(--grid-soft);
   border-radius: 2px;
   background: var(--panel);
+  contain: layout paint style;
 }
 .panel:hover {
   border-color: #333b46;
@@ -411,16 +417,20 @@ main {
 .panel-view-button {
   height: 24px;
   padding: 0 8px;
-  border-color: transparent;
-  background: transparent;
+  border-color: #273443;
+  background: #171f29;
   color: #a9b4c3;
   font-size: 12px;
   font-weight: 800;
 }
 .panel-view-button:hover {
-  border-color: #303947;
-  background: #202631;
+  border-color: #3274d9;
+  background: #1f5fbf;
   color: #dce3ed;
+}
+.featured-panel .panel-view-button {
+  border-color: #315989;
+  color: #d9e7ff;
 }
 .panel-menu-button {
   width: 24px;
@@ -452,6 +462,7 @@ main {
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-color: #596271 #10151b;
+  contain: content;
 }
 table {
   width: 100%;

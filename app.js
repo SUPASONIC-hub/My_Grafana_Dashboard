@@ -1078,7 +1078,12 @@ function makePanel(panel, placement) {
   panel.render(body);
   renderContext = previousContext;
   renderRowLimit = previousRowLimit;
-  node.querySelector(".panel-view-button").addEventListener("click", (event) => {
+  const viewButton = node.querySelector(".panel-view-button");
+  viewButton.setAttribute("aria-label", `${panel.title} Query and Panel Spec 보기`);
+  viewButton.title = "Sanitized Query & Panel Spec";
+  viewButton.dataset.tip = "Open sanitized Query & Panel Spec";
+  viewButton.dataset.tipColor = colors.blue;
+  viewButton.addEventListener("click", (event) => {
     event.stopPropagation();
     openPanelView(panel.id);
   });
@@ -1092,10 +1097,12 @@ function makePanel(panel, placement) {
 
 function renderRowContent(row, grid) {
   if (grid.dataset.rendered === "true") return;
+  const fragment = document.createDocumentFragment();
   row.items.forEach((item) => {
     const panel = panelById.get(item.id);
-    if (panel) grid.appendChild(makePanel(panel, item));
+    if (panel) fragment.appendChild(makePanel(panel, item));
   });
+  grid.appendChild(fragment);
   grid.dataset.rendered = "true";
   grid.closest(".dashboard-section")?.classList.remove("section-loading");
 }
@@ -1109,9 +1116,12 @@ function renderDashboard() {
   cleanupCharts(dashboard);
   dashboard.innerHTML = "";
   const pendingRows = [];
+  const rowJobs = [];
+  const fragment = document.createDocumentFragment();
   layoutRows.forEach((row, index) => {
     const section = document.createElement("section");
     section.className = `dashboard-section${index ? " section-loading" : ""}`;
+    section.dataset.rowIndex = String(index);
     const titlebar = document.createElement("div");
     titlebar.className = "row-titlebar";
     const rowPanels = row.items.map((item) => panelById.get(item.id)).filter(Boolean);
@@ -1122,7 +1132,11 @@ function renderDashboard() {
     const rowHeight = Math.max(...row.items.map((item) => item.y + item.h));
     grid.style.gridTemplateRows = `repeat(${rowHeight}, 26px)`;
     section.append(titlebar, grid);
-    dashboard.appendChild(section);
+    fragment.appendChild(section);
+    rowJobs.push({ index, row, section, grid });
+  });
+  dashboard.appendChild(fragment);
+  rowJobs.forEach(({ index, row, section, grid }) => {
     if (index === 0) {
       renderRowContent(row, grid);
     } else if ("IntersectionObserver" in window) {
@@ -1135,7 +1149,6 @@ function renderDashboard() {
           if (layoutRows[rowIndex] && gridNode) renderRowContent(layoutRows[rowIndex], gridNode);
         });
       }, { rootMargin: "700px 0px" });
-      section.dataset.rowIndex = String(index);
       rowObserver.observe(section);
     } else {
       pendingRows.push([row, grid]);
