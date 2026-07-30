@@ -32,6 +32,14 @@ function pct(value) {
   return `${Number(value).toFixed(1)}%`;
 }
 
+function attrText(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 function makeSpark(score) {
   const bars = Array.from({ length: 18 }, (_, index) => {
     const hue = index < 5 ? colors.red : index < 11 ? colors.orange : index < 15 ? colors.yellow : colors.green;
@@ -42,12 +50,12 @@ function makeSpark(score) {
 }
 
 function renderTable(container, columns, rows) {
-  const head = columns.map((column) => `<th class="${column.num ? "num" : ""}">${column.label}</th>`).join("");
+  const head = columns.map((column) => `<th class="${column.num ? "num" : ""}" title="${attrText(column.label)}">${column.label}</th>`).join("");
   const body = rows.map((row) => {
     const cells = columns.map((column) => {
       const raw = row[column.key];
       const value = column.render ? column.render(raw, row) : column.format ? column.format(raw) : raw;
-      return `<td class="${column.num ? "num" : ""}">${value ?? ""}</td>`;
+      return `<td class="${column.num ? "num" : ""}" title="${attrText(raw)}">${value ?? ""}</td>`;
     }).join("");
     return `<tr>${cells}</tr>`;
   }).join("");
@@ -810,7 +818,7 @@ function renderDashboard() {
     const grid = document.createElement("div");
     grid.className = "row-grid";
     const rowHeight = Math.max(...row.items.map((item) => item.y + item.h));
-    grid.style.gridTemplateRows = `repeat(${rowHeight}, 30px)`;
+    grid.style.gridTemplateRows = `repeat(${rowHeight}, 24px)`;
     row.items.forEach((item) => {
       const panel = panelById.get(item.id);
       if (panel) grid.appendChild(makePanel(panel, item));
