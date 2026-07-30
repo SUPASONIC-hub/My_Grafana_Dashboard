@@ -202,6 +202,18 @@ main {
   border-color: #33486a;
   color: #9fbff4;
 }
+.implementation-strip button {
+  min-height: 24px;
+  padding: 0 9px;
+  border-color: #3274d9;
+  background: #1f5fbf;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+}
+.implementation-strip button:hover {
+  background: #3274d9;
+}
 .variable {
   display: inline-flex;
   align-items: center;
@@ -254,6 +266,19 @@ main {
 }
 .dashboard-section {
   min-width: 0;
+}
+.section-loading .row-grid::before {
+  content: "Loading row...";
+  grid-column: 1 / -1;
+  grid-row: 1 / span 3;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--grid-soft);
+  border-radius: 2px;
+  background: #11161c;
+  color: #687281;
+  font-size: 12px;
+  font-weight: 800;
 }
 .row-titlebar {
   height: 28px;

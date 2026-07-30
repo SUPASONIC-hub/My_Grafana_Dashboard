@@ -16,6 +16,7 @@ let activeInspectMode = "query";
 let activeViewDocMode = "summary";
 let renderContext = "dashboard";
 let renderRowLimit = null;
+let renderGeneration = 0;
 const chartObservers = new WeakMap();
 const chartContainers = new Set();
 const panelMetaCache = new Map();
@@ -39,6 +40,13 @@ function debounce(fn, delay = 180) {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delay);
   };
+}
+
+function scheduleWork(fn) {
+  if ("requestIdleCallback" in window) {
+    return requestIdleCallback(fn, { timeout: 180 });
+  }
+  return setTimeout(fn, 24);
 }
 
 function pct(value) {
@@ -1049,14 +1057,26 @@ function makePanel(panel, placement) {
   return node;
 }
 
+function renderRowContent(row, grid) {
+  if (grid.dataset.rendered === "true") return;
+  row.items.forEach((item) => {
+    const panel = panelById.get(item.id);
+    if (panel) grid.appendChild(makePanel(panel, item));
+  });
+  grid.dataset.rendered = "true";
+  grid.closest(".dashboard-section")?.classList.remove("section-loading");
+}
+
 function renderDashboard() {
+  const generation = ++renderGeneration;
   seed = 26 + $("userSearch").value.length * 101;
   const dashboard = $("dashboard");
   cleanupCharts(dashboard);
   dashboard.innerHTML = "";
-  layoutRows.forEach((row) => {
+  const pendingRows = [];
+  layoutRows.forEach((row, index) => {
     const section = document.createElement("section");
-    section.className = "dashboard-section";
+    section.className = `dashboard-section${index ? " section-loading" : ""}`;
     const titlebar = document.createElement("div");
     titlebar.className = "row-titlebar";
     titlebar.textContent = row.title;
@@ -1064,13 +1084,22 @@ function renderDashboard() {
     grid.className = "row-grid";
     const rowHeight = Math.max(...row.items.map((item) => item.y + item.h));
     grid.style.gridTemplateRows = `repeat(${rowHeight}, 26px)`;
-    row.items.forEach((item) => {
-      const panel = panelById.get(item.id);
-      if (panel) grid.appendChild(makePanel(panel, item));
-    });
     section.append(titlebar, grid);
     dashboard.appendChild(section);
+    if (index === 0) {
+      renderRowContent(row, grid);
+    } else {
+      pendingRows.push([row, grid]);
+    }
   });
+  const renderNext = () => {
+    if (generation !== renderGeneration) return;
+    const next = pendingRows.shift();
+    if (!next) return;
+    renderRowContent(next[0], next[1]);
+    if (pendingRows.length) scheduleWork(renderNext);
+  };
+  if (pendingRows.length) scheduleWork(renderNext);
 }
 
 function closePanelMenu() {
@@ -1173,6 +1202,7 @@ $("viewCloseButton").addEventListener("click", closePanelView);
 $("viewInspectButton").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
 });
+$("openFeaturedPanel").addEventListener("click", () => openPanelView("active"));
 document.addEventListener("pointerover", (event) => {
   const target = event.target.closest("[data-tip], [data-tip-series]");
   if (!target) return;
