@@ -17,6 +17,7 @@ let activeViewDocMode = "summary";
 let renderContext = "dashboard";
 let renderRowLimit = null;
 const chartObservers = new WeakMap();
+const chartContainers = new Set();
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -29,6 +30,14 @@ function number(base, spread = 0.25) {
 
 function pick(items, index) {
   return items[index % items.length];
+}
+
+function debounce(fn, delay = 180) {
+  let timer = 0;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
 }
 
 function pct(value) {
@@ -52,8 +61,20 @@ function makeSpark(score) {
   return `<span class="spark-cell">${bars}</span> <span class="score">${Math.round(score)}</span>`;
 }
 
+function dashboardRowCount(count) {
+  if (renderContext !== "dashboard") return count;
+  return Math.min(count, renderRowLimit || 18);
+}
+
+function generatedRows(count, factory) {
+  const rows = Array.from({ length: dashboardRowCount(count) }, (_, index) => factory(index));
+  rows.totalRows = count;
+  return rows;
+}
+
 function renderTable(container, columns, rows) {
   const limit = renderRowLimit || 18;
+  const totalRows = rows.totalRows || rows.length;
   const visibleRows = renderContext === "dashboard" && rows.length > limit ? rows.slice(0, limit) : rows;
   const head = columns.map((column) => `<th class="${column.num ? "num" : ""}" title="${attrText(column.label)}">${column.label}</th>`).join("");
   const body = visibleRows.map((row) => {
@@ -64,7 +85,7 @@ function renderTable(container, columns, rows) {
     }).join("");
     return `<tr>${cells}</tr>`;
   }).join("");
-  const summary = visibleRows.length < rows.length ? `<div class="table-preview-note">Preview ${visibleRows.length} / ${rows.length} rows - View에서 전체 확인</div>` : "";
+  const summary = visibleRows.length < totalRows ? `<div class="table-preview-note">Preview ${visibleRows.length} / ${totalRows} rows - View에서 전체 확인</div>` : "";
   container.innerHTML = `<div class="grafana-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${summary}</div>`;
 }
 
@@ -96,6 +117,15 @@ function renderResponsiveChart(container, fallbackWidth, fallbackHeight, draw) {
   });
   observer.observe(container);
   chartObservers.set(container, observer);
+  chartContainers.add(container);
+}
+
+function cleanupCharts(root = document) {
+  root.querySelectorAll?.(".panel-body").forEach((container) => {
+    chartObservers.get(container)?.disconnect();
+    chartObservers.delete(container);
+    chartContainers.delete(container);
+  });
 }
 
 function renderLineChart(container, series) {
@@ -120,7 +150,8 @@ function renderLineChart(container, series) {
       const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
       const points = item.values.map((value, index) => {
         const hour = `${String(index).padStart(2, "0")}:00`;
-        return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip="${attrText(`${item.name} / ${hour} / ${fmt.format(value)}`)}" data-tip-color="${attrText(item.color)}"></circle>`;
+        const grouped = series.map((seriesItem) => `${seriesItem.color}|${seriesItem.name}|${fmt.format(seriesItem.values[index])}`).join(";;");
+        return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip-title="${hour}" data-tip-series="${attrText(grouped)}"></circle>`;
       }).join("");
       return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>${points}`;
     }).join("");
@@ -159,7 +190,7 @@ function baseRows(count) {
   const users = ["M1000041124", "M1000043268", "M1000043736", "M1000028827", "M1000025039", "M1000043555", "M1000043312"];
   const platforms = ["aos", "ios", "web"];
   const types = ["NYYYYYN", "NNNNNNN", "YYYYYNN", "YNYNNN", "NNNYNN"];
-  return Array.from({ length: count }, (_, index) => ({
+  return generatedRows(count, (index) => ({
     rank: index + 1,
     userId: pick(users, index) + String(index).padStart(2, "0"),
     status: pick(types, index),
@@ -202,7 +233,7 @@ function recommendationRows() {
 
 function pageRows(count) {
   const paths = ["/", "/product/detail", "/product/studio", "/estimate/compare", "/review/detail", "/search/result", "/my/scrap"];
-  return Array.from({ length: count }, (_, index) => ({
+  return generatedRows(count, (index) => ({
     rank: index + 1,
     path: pick(paths, index),
     title: ["홈", "웨딩홀 상세", "스튜디오 패키지", "견적 비교", "리뷰 상세", "검색 결과", "스크랩"][index % 7],
@@ -892,20 +923,38 @@ function panelEvidence(panel) {
   return { columns, thresholds, overrides, queryLines };
 }
 
+function panelTechTags(panel) {
+  const evidence = panelEvidence(panel);
+  const tags = [panel.settings?.visualization || panel.type];
+  if (evidence.thresholds) tags.push("threshold");
+  if (evidence.overrides) tags.push("field override");
+  if (panel.type === "table" && evidence.columns > 4) tags.push("table transform");
+  if (panel.type === "timeseries") tags.push("time series");
+  if (panel.type === "bargauge") tags.push("bar gauge");
+  return [...new Set(tags.filter(Boolean))].slice(0, 4);
+}
+
 function panelSummaryText(panel) {
   const insight = panelInsight(panel);
   const evidence = panelEvidence(panel);
   const doc = panelDoc(panel);
   const spec = doc?.panelSpec || {};
+  const tags = panelTechTags(panel).join(", ");
   return [
-    `Purpose`,
+    `Analysis Goal`,
     insight.purpose,
     ``,
-    `Metrics`,
+    `Data Modeling`,
     insight.metrics,
     ``,
-    `Implementation`,
+    `Grafana Implementation`,
     insight.implementation,
+    ``,
+    `Technical Tags`,
+    tags || "panel configuration",
+    ``,
+    `Security Sanitization`,
+    `실제 테이블명과 컬럼명은 한글 의미명으로 치환하고, Query 탭에는 보안 치환된 SQL ${evidence.queryLines ? `${evidence.queryLines}라인` : "원문"}을 표시합니다.`,
     ``,
     `Evidence`,
     `Query 탭에는 보안 치환된 SQL ${evidence.queryLines ? `${evidence.queryLines}라인` : "원문"}이 표시됩니다.`,
@@ -927,6 +976,7 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
     ["Thresholds", evidence.thresholds],
     ["Columns", evidence.columns],
   ].map(([label, value]) => `<span><strong>${fmt.format(value)}</strong>${label}</span>`).join("");
+  $("viewEvidenceBadges").insertAdjacentHTML("beforeend", panelTechTags(panel).map((tag) => `<em>${tag}</em>`).join(""));
   const modeLabels = {
     summary: "Summary: purpose / metrics / implementation",
     query: "Query: sanitized SQL",
@@ -948,6 +998,7 @@ function makePanel(panel, placement) {
   }
   node.querySelector("h2").textContent = panel.title;
   if (["timeseries", "barchart", "bargauge"].includes(panel.type)) node.classList.add("chart-panel");
+  node.querySelector(".panel-actions").insertAdjacentHTML("beforebegin", `<div class="panel-tech-tags">${panelTechTags(panel).map((tag) => `<span>${tag}</span>`).join("")}</div>`);
   const body = node.querySelector(".panel-body");
   const previousContext = renderContext;
   const previousRowLimit = renderRowLimit;
@@ -971,6 +1022,7 @@ function makePanel(panel, placement) {
 function renderDashboard() {
   seed = 26 + $("userSearch").value.length * 101;
   const dashboard = $("dashboard");
+  cleanupCharts(dashboard);
   dashboard.innerHTML = "";
   layoutRows.forEach((row) => {
     const section = document.createElement("section");
@@ -1027,6 +1079,7 @@ function openPanelView(panelId) {
   const panel = panelById.get(panelId);
   if (!panel) return;
   const slot = $("viewPanelSlot");
+  cleanupCharts(slot);
   slot.innerHTML = "";
   const node = makePanel(panel);
   node.style.gridColumn = "";
@@ -1039,6 +1092,7 @@ function openPanelView(panelId) {
 }
 
 function closePanelView() {
+  cleanupCharts($("viewPanelSlot"));
   $("panelView").hidden = true;
   document.body.style.overflow = "";
   activePanelId = null;
@@ -1074,11 +1128,15 @@ document.addEventListener("keydown", (event) => {
 });
 
 $("refreshButton").addEventListener("click", renderDashboard);
-$("userSearch").addEventListener("input", renderDashboard);
+const debouncedRenderDashboard = debounce(renderDashboard, 180);
+const debouncedRefreshView = debounce(() => {
+  if (activePanelId) openPanelView(activePanelId);
+}, 180);
+$("userSearch").addEventListener("input", debouncedRenderDashboard);
 $("viewUserSearch").addEventListener("input", (event) => {
   $("userSearch").value = event.target.value;
-  renderDashboard();
-  if (activePanelId) openPanelView(activePanelId);
+  debouncedRenderDashboard();
+  debouncedRefreshView();
 });
 $("closeView").addEventListener("click", closePanelView);
 $("viewCloseButton").addEventListener("click", closePanelView);
@@ -1086,7 +1144,7 @@ $("viewInspectButton").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
 });
 document.addEventListener("pointerover", (event) => {
-  const target = event.target.closest("[data-tip]");
+  const target = event.target.closest("[data-tip], [data-tip-series]");
   if (!target) return;
   let tip = $("chartTooltip");
   if (!tip) {
@@ -1095,7 +1153,15 @@ document.addEventListener("pointerover", (event) => {
     tip.className = "chart-tooltip";
     document.body.appendChild(tip);
   }
-  tip.innerHTML = `<i style="background:${attrText(target.dataset.tipColor || colors.blue)}"></i><span>${attrText(target.dataset.tip)}</span>`;
+  if (target.dataset.tipSeries) {
+    const rows = target.dataset.tipSeries.split(";;").map((line) => {
+      const [color, name, value] = line.split("|");
+      return `<span class="tooltip-row"><i style="background:${attrText(color)}"></i><b>${attrText(name)}</b><strong>${attrText(value)}</strong></span>`;
+    }).join("");
+    tip.innerHTML = `<div class="tooltip-title">${attrText(target.dataset.tipTitle)}</div>${rows}`;
+  } else {
+    tip.innerHTML = `<span class="tooltip-row"><i style="background:${attrText(target.dataset.tipColor || colors.blue)}"></i><b>${attrText(target.dataset.tip)}</b></span>`;
+  }
   tip.hidden = false;
 });
 document.addEventListener("pointermove", (event) => {
@@ -1105,7 +1171,7 @@ document.addEventListener("pointermove", (event) => {
   tip.style.top = `${Math.max(8, event.clientY - 34)}px`;
 });
 document.addEventListener("pointerout", (event) => {
-  if (!event.target.closest("[data-tip]")) return;
+  if (!event.target.closest("[data-tip], [data-tip-series]")) return;
   const tip = $("chartTooltip");
   if (tip) tip.hidden = true;
 });

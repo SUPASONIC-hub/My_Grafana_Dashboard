@@ -312,6 +312,22 @@ main {
   align-items: center;
   gap: 2px;
 }
+.panel-tech-tags {
+  max-width: 34%;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  overflow: hidden;
+}
+.panel-tech-tags span {
+  padding: 1px 5px;
+  border: 1px solid #293440;
+  border-radius: 3px;
+  color: #8ea0b8;
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
 .panel-view-button {
   height: 24px;
   padding: 0 8px;
@@ -559,7 +575,7 @@ tbody tr:hover td { background: #202630; }
   height: calc(100vh - 102px);
   margin: 0 48px 12px 10px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 32vw);
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 36vw);
   gap: 8px;
   min-width: 0;
 }
@@ -658,6 +674,19 @@ tbody tr:hover td { background: #202630; }
   font-size: 15px;
   line-height: 1;
 }
+.summary-metrics em {
+  min-height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  border: 1px solid #284a37;
+  border-radius: 3px;
+  color: #9fe3ad;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
 .panel-doc-tabs {
   height: 34px;
   display: flex;
@@ -727,17 +756,35 @@ tbody tr:hover td { background: #202630; }
   font-size: 12px;
   font-weight: 700;
   pointer-events: none;
-  white-space: nowrap;
 }
-.chart-tooltip i {
+.tooltip-title {
+  margin-bottom: 5px;
+  color: #e7edf5;
+  font-weight: 900;
+}
+.tooltip-row {
+  min-width: 150px;
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  align-items: center;
+  gap: 7px;
+}
+.tooltip-row + .tooltip-row {
+  margin-top: 3px;
+}
+.tooltip-row i {
   width: 8px;
   height: 8px;
-  display: inline-block;
-  margin-right: 7px;
+  display: block;
   border-radius: 50%;
 }
-.chart-tooltip span {
-  vertical-align: middle;
+.tooltip-row b {
+  color: #cbd5e1;
+  font-weight: 700;
+}
+.tooltip-row strong {
+  color: #e7edf5;
+  font-weight: 900;
 }
 
 .inspect-dialog {
