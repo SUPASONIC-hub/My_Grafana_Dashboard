@@ -103,6 +103,11 @@ button:hover {
   color: #9fe3ad;
   background: rgba(115, 191, 105, 0.08);
 }
+.build-badge {
+  border-color: #3b4b64;
+  color: #9fbff4;
+  background: rgba(87, 148, 242, 0.08);
+}
 .icon-button {
   width: 28px;
   height: 28px;
@@ -683,6 +688,21 @@ tbody tr:hover td { background: #202630; }
   line-height: 1.55;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.chart-tooltip {
+  position: fixed;
+  z-index: 200;
+  max-width: 280px;
+  padding: 7px 9px;
+  border: 1px solid #303947;
+  border-radius: 3px;
+  background: #111820;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  color: #e7edf5;
+  font-size: 12px;
+  font-weight: 700;
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .inspect-dialog {

@@ -13,8 +13,9 @@ const $ = (id) => document.getElementById(id);
 let seed = 26;
 let activePanelId = null;
 let activeInspectMode = "query";
-let activeViewDocMode = "query";
+let activeViewDocMode = "summary";
 let renderContext = "dashboard";
+let renderRowLimit = null;
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -51,7 +52,8 @@ function makeSpark(score) {
 }
 
 function renderTable(container, columns, rows) {
-  const visibleRows = renderContext === "dashboard" && rows.length > 18 ? rows.slice(0, 18) : rows;
+  const limit = renderRowLimit || 18;
+  const visibleRows = renderContext === "dashboard" && rows.length > limit ? rows.slice(0, limit) : rows;
   const head = columns.map((column) => `<th class="${column.num ? "num" : ""}" title="${attrText(column.label)}">${column.label}</th>`).join("");
   const body = visibleRows.map((row) => {
     const cells = columns.map((column) => {
@@ -61,7 +63,7 @@ function renderTable(container, columns, rows) {
     }).join("");
     return `<tr>${cells}</tr>`;
   }).join("");
-  const summary = visibleRows.length < rows.length ? `<div class="table-preview-note">Preview ${visibleRows.length} / ${rows.length} rows · View에서 전체 확인</div>` : "";
+  const summary = visibleRows.length < rows.length ? `<div class="table-preview-note">Preview ${visibleRows.length} / ${rows.length} rows - View에서 전체 확인</div>` : "";
   container.innerHTML = `<div class="grafana-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${summary}</div>`;
 }
 
@@ -90,7 +92,7 @@ function renderLineChart(container, series) {
     const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
     const points = item.values.map((value, index) => {
       const hour = `${String(index).padStart(2, "0")}:00`;
-      return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7"><title>${item.name} · ${hour} · ${fmt.format(value)}</title></circle>`;
+      return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7" data-tip="${attrText(`${item.name} / ${hour} / ${fmt.format(value)}`)}"></circle>`;
     }).join("");
     return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>${points}`;
   }).join("");
@@ -107,7 +109,7 @@ function renderBarChart(container, rows, mode = "horizontal") {
     const y = 8 + index * 24;
     const w = (row.value / max) * (width - left - 12);
     return `<text class="axis-text" x="${left - 8}" y="${y + 13}" text-anchor="end">${row.label}</text>
-      <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}"><title>${row.label} · ${fmt.format(row.value)}</title></rect>
+      <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}" data-tip="${attrText(`${row.label} / ${fmt.format(row.value)}`)}"></rect>
       <text class="axis-text bar-value" x="${Math.min(width - 4, left + w + 7)}" y="${y + 12}" text-anchor="end">${fmt.format(row.value)}</text>`;
   }).join("");
   container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
@@ -723,21 +725,21 @@ const layoutRows = [
     items: [
       { id: "summary", x: 0, y: 0, w: 9, h: 6 },
       { id: "os-duration", x: 9, y: 0, w: 15, h: 6 },
-      { id: "active", x: 0, y: 6, w: 24, h: 10 },
-      { id: "pv-summary", x: 0, y: 16, w: 24, h: 6 },
-      { id: "duration-bucket", x: 0, y: 22, w: 24, h: 6 },
-      { id: "threshold-summary", x: 0, y: 28, w: 24, h: 6 },
+      { id: "active", x: 0, y: 6, w: 24, h: 12 },
+      { id: "pv-summary", x: 0, y: 18, w: 24, h: 6 },
+      { id: "duration-bucket", x: 0, y: 24, w: 24, h: 6 },
+      { id: "threshold-summary", x: 0, y: 30, w: 24, h: 6 },
     ],
   },
   {
     title: "Row 2. 고객 타입 및 회원 상태 (Customer Type & Member Status)",
     items: [
-      { id: "pipeline", x: 0, y: 0, w: 24, h: 13 },
-      { id: "member-status", x: 0, y: 13, w: 24, h: 9 },
-      { id: "above-average", x: 0, y: 22, w: 24, h: 9 },
-      { id: "profile", x: 0, y: 31, w: 24, h: 13 },
-      { id: "recommend", x: 0, y: 44, w: 24, h: 7 },
-      { id: "journey", x: 0, y: 51, w: 24, h: 11 },
+      { id: "pipeline", x: 0, y: 0, w: 24, h: 15 },
+      { id: "member-status", x: 0, y: 15, w: 24, h: 9 },
+      { id: "above-average", x: 0, y: 24, w: 24, h: 9 },
+      { id: "profile", x: 0, y: 33, w: 24, h: 13 },
+      { id: "recommend", x: 0, y: 46, w: 24, h: 7 },
+      { id: "journey", x: 0, y: 53, w: 24, h: 11 },
     ],
   },
   {
@@ -758,14 +760,14 @@ const layoutRows = [
       { id: "product-click", x: 0, y: 47, w: 24, h: 11 },
       { id: "quality", x: 0, y: 58, w: 24, h: 11 },
       { id: "conversion", x: 0, y: 69, w: 24, h: 12 },
-      { id: "scrap-gauge", x: 0, y: 81, w: 24, h: 8 },
-      { id: "scrap-source", x: 0, y: 89, w: 24, h: 10 },
+      { id: "scrap-gauge", x: 0, y: 81, w: 24, h: 7 },
+      { id: "scrap-source", x: 0, y: 88, w: 24, h: 10 },
     ],
   },
   {
     title: "Row 5. UX 및 환경 데이터 (UX & Environment Metrics)",
     items: [
-      { id: "environment", x: 0, y: 0, w: 24, h: 12 },
+      { id: "environment", x: 0, y: 0, w: 24, h: 14 },
     ],
   },
 ];
@@ -782,6 +784,7 @@ function panelDoc(panel) {
 
 function panelDocText(panel, mode) {
   const doc = panelDoc(panel);
+  if (mode === "summary") return panelSummaryText(panel);
   if (!doc) return mode === "query" ? panel.query : JSON.stringify(panel.settings, null, 2);
   return mode === "query" ? doc.query : JSON.stringify(doc.panelSpec, null, 2);
 }
@@ -847,6 +850,27 @@ function panelInsight(panel) {
   };
 }
 
+function panelSummaryText(panel) {
+  const insight = panelInsight(panel);
+  const doc = panelDoc(panel);
+  const spec = doc?.panelSpec || {};
+  const queryLines = doc?.query ? doc.query.split(/\r?\n/).filter(Boolean).length : 0;
+  return [
+    `Purpose`,
+    insight.purpose,
+    ``,
+    `Metrics`,
+    insight.metrics,
+    ``,
+    `Implementation`,
+    insight.implementation,
+    ``,
+    `Evidence`,
+    `Query 탭에는 보안 치환된 SQL ${queryLines ? `${queryLines}라인` : "원문"}이 표시됩니다.`,
+    `Panel Spec 탭에는 ${spec.gridPos ? "gridPos, " : ""}fieldConfig, thresholds, override 설정이 표시됩니다.`,
+  ].join("\n");
+}
+
 function renderViewDocs(panel, mode = activeViewDocMode) {
   activeViewDocMode = mode;
   const insight = panelInsight(panel);
@@ -854,7 +878,13 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
   $("viewPurpose").textContent = insight.purpose;
   $("viewMetrics").textContent = insight.metrics;
   $("viewImplementation").textContent = insight.implementation;
-  $("viewDocModeLabel").textContent = mode === "query" ? "Query: sanitized SQL" : "Panel Spec: gridPos / fieldConfig / thresholds";
+  const modeLabels = {
+    summary: "Summary: purpose / metrics / implementation",
+    query: "Query: sanitized SQL",
+    spec: "Panel Spec: gridPos / fieldConfig / thresholds",
+  };
+  $("viewDocModeLabel").textContent = modeLabels[mode];
+  $("viewSummaryTab").classList.toggle("active", mode === "summary");
   $("viewQueryTab").classList.toggle("active", mode === "query");
   $("viewSpecTab").classList.toggle("active", mode === "spec");
   $("viewDocBody").textContent = panelDocText(panel, mode);
@@ -871,9 +901,12 @@ function makePanel(panel, placement) {
   if (["timeseries", "barchart", "bargauge"].includes(panel.type)) node.classList.add("chart-panel");
   const body = node.querySelector(".panel-body");
   const previousContext = renderContext;
+  const previousRowLimit = renderRowLimit;
   renderContext = placement ? "dashboard" : "view";
+  renderRowLimit = placement ? Math.max(5, Math.min(20, Math.floor((placement.h * 26 - 52) / 30))) : null;
   panel.render(body);
   renderContext = previousContext;
+  renderRowLimit = previousRowLimit;
   node.querySelector(".panel-view-button").addEventListener("click", (event) => {
     event.stopPropagation();
     openPanelView(panel.id);
@@ -1002,6 +1035,34 @@ $("closeView").addEventListener("click", closePanelView);
 $("viewCloseButton").addEventListener("click", closePanelView);
 $("viewInspectButton").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
+});
+document.addEventListener("pointerover", (event) => {
+  const target = event.target.closest("[data-tip]");
+  if (!target) return;
+  let tip = $("chartTooltip");
+  if (!tip) {
+    tip = document.createElement("div");
+    tip.id = "chartTooltip";
+    tip.className = "chart-tooltip";
+    document.body.appendChild(tip);
+  }
+  tip.textContent = target.dataset.tip;
+  tip.hidden = false;
+});
+document.addEventListener("pointermove", (event) => {
+  const tip = $("chartTooltip");
+  if (!tip || tip.hidden) return;
+  tip.style.left = `${Math.min(window.innerWidth - tip.offsetWidth - 12, event.clientX + 12)}px`;
+  tip.style.top = `${Math.max(8, event.clientY - 34)}px`;
+});
+document.addEventListener("pointerout", (event) => {
+  if (!event.target.closest("[data-tip]")) return;
+  const tip = $("chartTooltip");
+  if (tip) tip.hidden = true;
+});
+$("viewSummaryTab").addEventListener("click", () => {
+  const panel = panelById.get(activePanelId);
+  if (panel) renderViewDocs(panel, "summary");
 });
 $("viewQueryTab").addEventListener("click", () => {
   const panel = panelById.get(activePanelId);
