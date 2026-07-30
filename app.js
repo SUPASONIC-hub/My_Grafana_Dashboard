@@ -1,138 +1,538 @@
-const palette = ["#5794f2", "#73bf69", "#f2cc0c", "#f2495c", "#b877d9", "#ff9830"];
-const platforms = ["웹", "IOS", "AOS"];
-const pages = ["홈", "웨딩홀 상세", "스드메 패키지", "견적 비교", "리뷰", "상담 신청", "이벤트"];
-const keywords = ["스몰웨딩", "본식스냅", "드레스", "웨딩홀", "메이크업", "청첩장"];
-const customerTypes = ["예비신부", "예비신랑", "동행가족", "플래너", "비회원"];
-let state = { seed: 42, range: 30, user: "", live: true };
-let timer;
-const $ = (id) => document.getElementById(id);
+const colors = {
+  blue: "#5794f2",
+  green: "#73bf69",
+  yellow: "#fade2a",
+  orange: "#ff9830",
+  red: "#f2495c",
+  purple: "#b877d9",
+};
+
+const palette = [colors.blue, colors.green, colors.yellow, colors.orange, colors.red, colors.purple];
 const fmt = new Intl.NumberFormat("ko-KR");
+const $ = (id) => document.getElementById(id);
+let seed = 26;
+let activePanelId = null;
+let activeInspectMode = "query";
 
 function rand() {
-  state.seed = (state.seed * 1664525 + 1013904223) % 4294967296;
-  return state.seed / 4294967296;
+  seed = (seed * 1664525 + 1013904223) % 4294967296;
+  return seed / 4294967296;
 }
-function number(base, spread = 0.2) {
-  const userBoost = state.user ? 0.72 + (state.user.length % 5) * 0.08 : 1;
-  const rangeBoost = Math.sqrt(state.range / 30);
-  return Math.round(base * userBoost * rangeBoost * (1 + (rand() - 0.5) * spread));
+
+function number(base, spread = 0.25) {
+  return Math.max(0, Math.round(base * (1 + (rand() - 0.5) * spread)));
 }
-function pct(value) { return `${value.toFixed(1)}%`; }
-function heatColor(value) {
-  if (value >= 70) return "#73bf69";
-  if (value >= 45) return "#f2cc0c";
-  return "#f2495c";
+
+function pick(items, index) {
+  return items[index % items.length];
 }
-function renderTable(id, columns, rows) {
-  const head = columns.map((col) => `<th class="${col.num ? "num" : ""}">${col.label}</th>`).join("");
-  const body = rows.map((row) => `<tr>${columns.map((col) => {
-    const raw = row[col.key];
-    const value = col.heat ? `<span class="heat" style="background:${heatColor(Number(raw))}">${col.format ? col.format(raw) : raw}</span>` : col.format ? col.format(raw) : raw;
-    return `<td class="${col.num ? "num" : ""}">${value}</td>`;
-  }).join("")}</tr>`).join("");
-  $(id).innerHTML = `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+
+function pct(value) {
+  return `${Number(value).toFixed(1)}%`;
 }
-function makePlatformRows() {
-  const values = platforms.map((platform, index) => ({ platform, sessions: number([62000, 42000, 38000][index], 0.28) }));
-  const total = values.reduce((sum, row) => sum + row.sessions, 0);
-  return [{ platform: "전체", sessions: total }, ...values].map((row) => ({
-    ...row,
-    share: row.platform === "전체" ? 100 : (row.sessions / total) * 100,
-    duration: number(row.platform === "웹" ? 495 : row.platform === "IOS" ? 438 : 416, 0.18),
-    pv: 2.4 + rand() * 2.2,
+
+function makeSpark(score) {
+  const bars = Array.from({ length: 18 }, (_, index) => {
+    const hue = index < 5 ? colors.red : index < 11 ? colors.orange : index < 15 ? colors.yellow : colors.green;
+    const opacity = index < Math.round(score / 6) ? 1 : 0.28;
+    return `<i style="background:${hue};opacity:${opacity}"></i>`;
+  }).join("");
+  return `<span class="spark-cell">${bars}</span> <span class="score">${Math.round(score)}</span>`;
+}
+
+function renderTable(container, columns, rows) {
+  const head = columns.map((column) => `<th class="${column.num ? "num" : ""}">${column.label}</th>`).join("");
+  const body = rows.map((row) => {
+    const cells = columns.map((column) => {
+      const raw = row[column.key];
+      const value = column.render ? column.render(raw, row) : column.format ? column.format(raw) : raw;
+      return `<td class="${column.num ? "num" : ""}">${value ?? ""}</td>`;
+    }).join("");
+    return `<tr>${cells}</tr>`;
+  }).join("");
+  container.innerHTML = `<div class="grafana-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function renderNoData(container) {
+  container.innerHTML = `<div class="no-data">No data</div>`;
+}
+
+function renderLineChart(container, series) {
+  const width = 1200;
+  const height = 280;
+  const pad = { top: 14, right: 22, bottom: 34, left: 46 };
+  const values = series.flatMap((item) => item.values);
+  const max = Math.max(...values) * 1.18;
+  const x = (index) => pad.left + (index / (series[0].values.length - 1)) * (width - pad.left - pad.right);
+  const y = (value) => height - pad.bottom - (value / max) * (height - pad.top - pad.bottom);
+  const grid = Array.from({ length: 6 }, (_, index) => {
+    const yy = pad.top + index * ((height - pad.top - pad.bottom) / 5);
+    return `<line class="grid-line" x1="${pad.left}" y1="${yy}" x2="${width - pad.right}" y2="${yy}"></line>`;
+  }).join("");
+  const ticks = Array.from({ length: 13 }, (_, index) => {
+    const xx = x(index * 2);
+    return `<text class="axis-text" x="${xx}" y="${height - 10}" text-anchor="middle">${String(index * 2).padStart(2, "0")}:00</text>`;
+  }).join("");
+  const paths = series.map((item) => {
+    const d = item.values.map((value, index) => `${index ? "L" : "M"} ${x(index)} ${y(value)}`).join(" ");
+    const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
+    return `<path d="${fill}" fill="${item.color}" opacity="0.12"></path><path d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>`;
+  }).join("");
+  const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.name}</span>`).join("");
+  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="time series">${grid}${paths}${ticks}</svg><div class="legend">${legend}</div></div>`;
+}
+
+function renderBarChart(container, rows, mode = "horizontal") {
+  const width = 1200;
+  const height = Math.max(260, rows.length * 24 + 40);
+  const left = 210;
+  const max = Math.max(...rows.map((row) => row.value));
+  const bars = rows.map((row, index) => {
+    const y = 15 + index * 24;
+    const w = (row.value / max) * (width - left - 60);
+    return `<text class="axis-text" x="${left - 8}" y="${y + 13}" text-anchor="end">${row.label}</text>
+      <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}"></rect>
+      <text class="axis-text" x="${left + w + 7}" y="${y + 12}">${fmt.format(row.value)}</text>`;
+  }).join("");
+  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
+}
+
+function lineValues(base, points = 24, spread = 0.85) {
+  return Array.from({ length: points }, (_, index) => {
+    const rhythm = Math.sin(index / 1.7) * base * 0.28 + Math.cos(index / 4) * base * 0.14;
+    const spike = [5, 6, 18].includes(index) ? base * (0.8 + rand()) : 0;
+    return Math.max(1, number(base + rhythm + spike, spread));
+  });
+}
+
+function baseRows(count) {
+  const users = ["M1000041124", "M1000043268", "M1000043736", "M1000028827", "M1000025039", "M1000043555", "M1000043312"];
+  const platforms = ["aos", "ios", "web"];
+  const types = ["NYYYYYN", "NNNNNNN", "YYYYYNN", "YNYNNN", "NNNYNN"];
+  return Array.from({ length: count }, (_, index) => ({
+    rank: index + 1,
+    userId: pick(users, index) + String(index).padStart(2, "0"),
+    status: pick(types, index),
+    typeId: [26, 0, 58, 56, 40, 63][index % 6],
+    sessions: number(14 + index * 2, 1.2),
+    pv: number(240 + index * 21, 0.9),
+    avgPv: (8 + rand() * 48).toFixed(1),
+    duration: `${number(1 + (index % 28), 0.5)} minutes`,
+    search: number(index % 11, 1.8),
+    clicks: number(index % 17, 1.7),
+    updated: `2026-07-30 04:01:${String(19 + (index % 39)).padStart(2, "0")}.${index % 10}`,
+    first: `2026-0${5 + (index % 3)}-${String(9 + (index % 20)).padStart(2, "0")} ${String(index % 24).padStart(2, "0")}:43:55`,
+    last: `2026-07-30 00:${String(index % 60).padStart(2, "0")}:${String(9 + index).padStart(2, "0")}`,
+    platform: pick(platforms, index),
+    reservation: index % 4 === 0 ? `2027-0${1 + (index % 9)}-${String(10 + index).padStart(2, "0")} 00:00:00.0` : "",
   }));
 }
-function lineSeries(points, base, volatility) {
-  return Array.from({ length: points }, (_, index) => ({ label: `${String(index).padStart(2, "0")}:00`, value: Math.max(10, number(base + Math.sin(index / 2.4) * base * 0.28, volatility)) }));
+
+function recommendationRows() {
+  const categories = ["드레스", "본식상품", "헤어-메이크업", "웨딩홀", "스튜디오"];
+  const products = ["TEMP_플로리스", "TEMP_아멜리아그라피", "TEMP_하임", "TEMP_슈슈드 강남", "TEMP_아카이브B"];
+  return categories.map((category, index) => ({
+    rank: index + 1,
+    category,
+    categoryScore: 100,
+    categoryLevel: "매우 높음",
+    candidate: ["플로리스", "아멜리아그라피디자인", "하임", "슈슈드 강남", "아카이브B"][index],
+    product: products[index],
+    productType: "임시ID",
+    productScore: 86,
+    productLevel: "높음",
+    pv: number(6400 + index * 1800, 0.6),
+    searches: number(320 + index * 400, 1.1),
+    inquiries: number(290 + index * 210, 1.2),
+    clicks: number(900 + index * 500, 1.3),
+    lastScore: 20,
+    lastSearch: `2026-07-${30 - (index % 2)} 00:${String(index * 9).padStart(2, "0")}:37`,
+  }));
 }
-function multiSeries(labels) {
-  return labels.map((label, index) => ({ label, color: palette[index], points: lineSeries(24, 36 + index * 11, 0.34).map((point) => ({ ...point, value: point.value + index * 8 })) }));
+
+function pageRows(count) {
+  const paths = ["/", "/product/wedding-hall", "/product/studio", "/estimate/compare", "/review/detail", "/search/result", "/my/scrap"];
+  return Array.from({ length: count }, (_, index) => ({
+    rank: index + 1,
+    path: pick(paths, index),
+    title: ["홈", "웨딩홀 상세", "스튜디오 패키지", "견적 비교", "리뷰 상세", "검색 결과", "스크랩"][index % 7],
+    pv: number(8800 - index * 130, 0.8),
+    session: number(3100 - index * 70, 0.7),
+    avg: (1.1 + rand() * 6.5).toFixed(2),
+    scroll: 20 + rand() * 75,
+    bounce: 4 + rand() * 42,
+  }));
 }
-function renderLineChart(id, series) {
-  const width = 1000, height = 330, pad = 42;
-  const all = series.flatMap((item) => item.points.map((point) => point.value));
-  const max = Math.max(...all) * 1.12;
-  const x = (i) => pad + (i / (series[0].points.length - 1)) * (width - pad * 1.5);
-  const y = (v) => height - pad - (v / max) * (height - pad * 1.4);
-  const grid = [0.25, 0.5, 0.75, 1].map((ratio) => `<line class="tick" x1="${pad}" y1="${height - pad - ratio * (height - pad * 1.4)}" x2="${width - pad / 2}" y2="${height - pad - ratio * (height - pad * 1.4)}"/>`).join("");
-  const paths = series.map((item) => `<path d="${item.points.map((point, i) => `${i ? "L" : "M"} ${x(i)} ${y(point.value)}`).join(" ")}" fill="none" stroke="${item.color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`).join("");
-  const labels = series[0].points.filter((_, i) => i % 4 === 0).map((point, i) => `<text x="${x(i * 4)}" y="${height - 9}" fill="#a7abb3" font-size="11" text-anchor="middle">${point.label}</text>`).join("");
-  const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.label}</span>`).join("");
-  $(id).innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="시계열 그래프">${grid}<line class="axis" x1="${pad}" y1="${height - pad}" x2="${width - pad / 2}" y2="${height - pad}"/>${paths}${labels}</svg><div class="legend">${legend}</div>`;
+
+const commonSettings = {
+  datasource: "BigQuery - anonymized demo",
+  interval: "1h",
+  timeRange: "2026-05-01 12:00:00 to 2026-07-31 11:59:59",
+  theme: "grafana-dark",
+  transparent: false,
+};
+
+const panels = [
+  {
+    id: "summary",
+    title: "1-1. 플랫폼별 주요 접속 지표 Summary",
+    span: [1, 1, 24, 4],
+    type: "table",
+    query: "SELECT platform, COUNT(DISTINCT session_id) sessions, COUNT(*) page_views, AVG(duration_sec) avg_duration FROM demo_events GROUP BY 1 ORDER BY sessions DESC;",
+    settings: { ...commonSettings, visualization: "table", thresholds: [60, 80], unit: "short" },
+    render(container) {
+      renderTable(container, [
+        { key: "platform", label: "플랫폼" },
+        { key: "sessions", label: "총 세션 수", num: true, format: fmt.format },
+        { key: "pv", label: "총 PV", num: true, format: fmt.format },
+        { key: "avg", label: "세션당 평균 PV", num: true },
+        { key: "duration", label: "평균 체류시간" },
+        { key: "share", label: "세션 비중", render: makeSpark },
+      ], ["웹", "IOS", "AOS"].map((platform, index) => ({
+        platform,
+        sessions: number([68920, 51880, 42710][index], 0.25),
+        pv: number([180240, 131300, 112490][index], 0.24),
+        avg: (2.2 + rand() * 2.1).toFixed(2),
+        duration: `${number(7 + index, 0.4)} minutes`,
+        share: 62 + rand() * 32,
+      })));
+    },
+  },
+  {
+    id: "active",
+    title: "1-2. 시간대별 활성 세션 수",
+    span: [1, 5, 24, 8],
+    type: "timeseries",
+    query: "SELECT TIMESTAMP_TRUNC(event_time, HOUR) time, platform, COUNT(DISTINCT session_id) value FROM demo_events GROUP BY 1, 2 ORDER BY 1;",
+    settings: { ...commonSettings, visualization: "timeseries", drawStyle: "line", fillOpacity: 12 },
+    render(container) {
+      renderLineChart(container, [
+        { name: "web", color: colors.green, values: lineValues(2600) },
+        { name: "ios", color: colors.blue, values: lineValues(1900) },
+        { name: "aos", color: colors.yellow, values: lineValues(1700) },
+      ]);
+    },
+  },
+  {
+    id: "profile",
+    title: "2-4. 유저 마스터 정보 (Status Profile)",
+    span: [1, 13, 24, 11],
+    type: "table",
+    query: "SELECT user_id, contract_status, user_type_id, sessions, page_views, avg_session_pv, last_visit_at FROM user_profile ORDER BY last_visit_at DESC LIMIT 100;",
+    settings: { ...commonSettings, visualization: "table", frozenColumns: 2, cellHeight: "sm" },
+    render(container) {
+      renderTable(container, [
+        { key: "rank", label: "순번", num: true },
+        { key: "userId", label: "유저 ID" },
+        { key: "status", label: "계약 상태" },
+        { key: "typeId", label: "유형 ID", num: true },
+        { key: "sessions", label: "총 세션 수", num: true },
+        { key: "pv", label: "총 PV", num: true },
+        { key: "avgPv", label: "세션당 평균 PV", num: true },
+        { key: "duration", label: "평균 세션 체류시간" },
+        { key: "search", label: "검색 수", num: true },
+        { key: "clicks", label: "상품 클릭 수", num: true },
+        { key: "updated", label: "프로필 업데이트 시각" },
+        { key: "first", label: "최초 방문 시각" },
+        { key: "last", label: "마지막 방문 시각" },
+        { key: "platform", label: "주 이용 플랫폼" },
+        { key: "reservation", label: "예정 예식일", render: (value) => value || '<span class="status-flag"></span>' },
+      ], baseRows(70));
+    },
+  },
+  {
+    id: "recommend",
+    title: "2-5. 개인 행동 기반 추천 후보 (Behavior-based Recommendation Candidates)_개인 전용",
+    span: [1, 24, 24, 7],
+    type: "table",
+    query: "WITH category_affinity AS (...) SELECT * FROM recommendation_candidates WHERE user_id = ${Search_UserID} ORDER BY category_score DESC, product_score DESC;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "cell", thresholds: [50, 75, 90] },
+    render(container) {
+      renderTable(container, [
+        { key: "rank", label: "추천 순위", num: true },
+        { key: "category", label: "추천 카테고리" },
+        { key: "categoryScore", label: "카테고리 관심도(100점)", render: makeSpark },
+        { key: "categoryLevel", label: "카테고리 관심 수준" },
+        { key: "candidate", label: "관심 상품 후보" },
+        { key: "product", label: "상품 식별값" },
+        { key: "productType", label: "식별값 유형" },
+        { key: "productScore", label: "상품 관심도(100점)", render: makeSpark },
+        { key: "productLevel", label: "상품 관심 수준" },
+        { key: "pv", label: "카테고리 PV", num: true, format: fmt.format },
+        { key: "searches", label: "검색 수", num: true, format: fmt.format },
+        { key: "inquiries", label: "카테고리 진입 수", num: true, format: fmt.format },
+        { key: "clicks", label: "상품 클릭 수", num: true, format: fmt.format },
+        { key: "lastScore", label: "최근점수", num: true },
+        { key: "lastSearch", label: "마지막 관심 시각" },
+      ], recommendationRows());
+    },
+  },
+  {
+    id: "journey",
+    title: "2-6. 유저 세션별 페이지 이동 경로",
+    span: [1, 31, 24, 10],
+    type: "table",
+    query: "SELECT user_id, session_id, STRING_AGG(page_path, ' > ' ORDER BY event_time) journey, MIN(event_time) start_at, MAX(event_time) end_at FROM demo_events GROUP BY 1, 2;",
+    settings: { ...commonSettings, visualization: "table", wrapText: false },
+    render(container) {
+      renderTable(container, [
+        { key: "rank", label: "순번", num: true },
+        { key: "userId", label: "유저 ID" },
+        { key: "session", label: "세션 ID" },
+        { key: "journey", label: "페이지 이동 경로", render: (value) => `<span class="link-cell">${value}</span>` },
+        { key: "duration", label: "체류시간" },
+        { key: "pv", label: "PV", num: true },
+      ], Array.from({ length: 32 }, (_, index) => {
+        const paths = ["/", "/search", "/product/wedding-hall", "/estimate", "/consulting", "/my/scrap"];
+        return {
+          rank: index + 1,
+          userId: `M10000${number(1000 + index, 0.2)}`,
+          session: `s_${number(100000 + index, 0.01)}`,
+          journey: paths.slice(index % 3, (index % 3) + 4).join(" > "),
+          duration: `${number(3 + (index % 15), 0.5)} minutes`,
+          pv: number(4 + (index % 18), 0.7),
+        };
+      }));
+    },
+  },
+  {
+    id: "entry",
+    title: "3-2. 진입/이탈 페이지 분석",
+    span: [1, 41, 12, 9],
+    type: "barchart",
+    query: "SELECT page_path, SUM(is_entry) entry_count, SUM(is_exit) exit_count FROM session_pages GROUP BY 1 ORDER BY entry_count DESC LIMIT 40;",
+    settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal" },
+    render(container) {
+      renderBarChart(container, pageRows(28).map((row, index) => ({
+        label: row.path,
+        value: row.pv,
+        color: index % 4 === 0 ? colors.green : colors.yellow,
+      })));
+    },
+  },
+  {
+    id: "search",
+    title: "4-2. 검색어 및 무결과율",
+    span: [13, 41, 12, 9],
+    type: "table",
+    query: "SELECT keyword, COUNT(*) searches, SAFE_DIVIDE(SUM(no_result), COUNT(*)) zero_result_rate FROM search_events GROUP BY 1 ORDER BY searches DESC;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
+    render(container) {
+      const keywords = ["스몰웨딩", "본식스냅", "드레스", "웨딩홀", "메이크업", "청첩장", "한복", "스튜디오", "혼주"];
+      renderTable(container, [
+        { key: "rank", label: "순위", num: true },
+        { key: "keyword", label: "검색어" },
+        { key: "searches", label: "검색 수", num: true, format: fmt.format },
+        { key: "zero", label: "무결과율", render: makeSpark },
+        { key: "clickRate", label: "결과 클릭률", render: makeSpark },
+      ], Array.from({ length: 45 }, (_, index) => ({
+        rank: index + 1,
+        keyword: pick(keywords, index),
+        searches: number(5200 - index * 70, 0.65),
+        zero: 8 + rand() * 38,
+        clickRate: 30 + rand() * 62,
+      })));
+    },
+  },
+  {
+    id: "events",
+    title: "4-1. 이벤트 유형별 발생 수",
+    span: [1, 50, 24, 8],
+    type: "barchart",
+    query: "SELECT event_name, COUNT(*) event_count FROM demo_events GROUP BY 1 ORDER BY event_count DESC;",
+    settings: { ...commonSettings, visualization: "barGauge", displayMode: "lcd" },
+    render(container) {
+      const events = ["page_view", "product_click", "search", "cta_click", "scrap_add", "share_click", "search_result_click", "banner_click"];
+      renderBarChart(container, events.map((event, index) => ({
+        label: event,
+        value: number(124000 - index * 14300, 0.45),
+        color: index % 3 === 0 ? colors.green : index % 3 === 1 ? colors.orange : colors.yellow,
+      })));
+    },
+  },
+  {
+    id: "quality",
+    title: "4-6. 검색 결과 품질 지표",
+    span: [1, 58, 12, 9],
+    type: "table",
+    query: "SELECT keyword, AVG(result_count) avg_results, AVG(first_click_rank) first_click_rank, AVG(product_click_rate) product_click_rate FROM search_quality GROUP BY 1;",
+    settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
+    render(container) {
+      renderTable(container, [
+        { key: "keyword", label: "검색어" },
+        { key: "avg", label: "평균 결과 수", num: true },
+        { key: "rank", label: "첫 클릭 순위", num: true },
+        { key: "rate", label: "상품 클릭률", render: makeSpark },
+        { key: "zero", label: "무결과율", render: makeSpark },
+      ], pageRows(35).map((row, index) => ({
+        keyword: ["드레스", "웨딩홀", "스튜디오", "메이크업", "부케", "상담"][index % 6],
+        avg: (3 + rand() * 52).toFixed(1),
+        rank: (1 + rand() * 8).toFixed(1),
+        rate: 28 + rand() * 61,
+        zero: 5 + rand() * 34,
+      })));
+    },
+  },
+  {
+    id: "empty",
+    title: "4-9. 최종 스크랩 상태별 발생 화면 목록",
+    span: [13, 58, 12, 9],
+    type: "table",
+    query: "SELECT final_scrap_status, page_path, COUNT(*) FROM scrap_state_transitions GROUP BY 1, 2;",
+    settings: { ...commonSettings, visualization: "table", noDataState: true },
+    render: renderNoData,
+  },
+  {
+    id: "environment",
+    title: "5-1. 플랫폼·기기 환경별 세션 분포",
+    span: [1, 67, 24, 10],
+    type: "barchart",
+    query: "SELECT platform, device_type, browser, COUNT(DISTINCT session_id) sessions FROM session_environment GROUP BY 1, 2, 3 ORDER BY sessions DESC;",
+    settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal", unit: "sessions" },
+    render(container) {
+      const envs = ["web / desktop / chrome", "ios / mobile / safari", "aos / mobile / chrome", "web / mobile / samsung", "ios / tablet / safari", "aos / tablet / chrome"];
+      renderBarChart(container, envs.map((env, index) => ({
+        label: env,
+        value: number(52000 - index * 6100, 0.36),
+        color: colors.yellow,
+      })));
+    },
+  },
+];
+
+function makePanel(panel) {
+  const node = $("panelTemplate").content.firstElementChild.cloneNode(true);
+  node.dataset.panelId = panel.id;
+  node.style.gridColumn = `${panel.span[0]} / span ${panel.span[2]}`;
+  node.style.gridRow = `${panel.span[1]} / span ${panel.span[3]}`;
+  node.querySelector("h2").textContent = panel.title;
+  const body = node.querySelector(".panel-body");
+  panel.render(body);
+  const menuButton = node.querySelector(".panel-menu-button");
+  menuButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    openPanelMenu(panel, menuButton);
+  });
+  return node;
 }
-function renderBarChart(id, rows, labelKey, valueKeys) {
-  const width = 1000, rowH = 42, height = Math.max(260, rows.length * rowH + 46), labelW = 210;
-  const max = Math.max(...rows.flatMap((row) => valueKeys.map((key) => row[key.key])));
-  const bars = rows.map((row, r) => {
-    let offset = labelW;
-    const label = `<text x="12" y="${r * rowH + 28}" fill="#d8d9da" font-size="12">${row[labelKey]}</text>`;
-    const pieces = valueKeys.map((key, i) => {
-      const w = (row[key.key] / max) * (width - labelW - 80);
-      const rect = `<rect x="${offset}" y="${r * rowH + 10}" width="${w}" height="22" rx="2" fill="${key.color || palette[i]}" opacity="0.9"></rect>`;
-      const text = w > 54 ? `<text x="${offset + w - 8}" y="${r * rowH + 26}" fill="#061016" font-size="12" font-weight="800" text-anchor="end">${fmt.format(row[key.key])}</text>` : "";
-      offset += w;
-      return rect + text;
-    }).join("");
-    return label + pieces;
-  }).join("");
-  const legend = valueKeys.map((key, i) => `<span><i style="background:${key.color || palette[i]}"></i>${key.label}</span>`).join("");
-  $(id).innerHTML = `<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="막대 그래프">${bars}</svg><div class="legend">${legend}</div>`;
+
+function renderDashboard() {
+  seed = 26 + $("userSearch").value.length * 101;
+  const dashboard = $("dashboard");
+  dashboard.innerHTML = "";
+  panels.forEach((panel) => dashboard.appendChild(makePanel(panel)));
 }
-function renderGauge(id, rows) {
-  $(id).innerHTML = rows.map((row, index) => `<div class="gauge"><strong>${row.label}</strong><span class="bar-track"><span class="bar-fill" style="width:${row.value}%;background:${palette[index]}"></span></span><span>${pct(row.value)}</span></div>`).join("");
+
+function closePanelMenu() {
+  document.querySelector(".panel-menu")?.remove();
+  document.querySelectorAll(".panel-menu-button").forEach((button) => button.setAttribute("aria-expanded", "false"));
 }
-function buildData() {
-  const platformRows = makePlatformRows();
-  const totalSessions = platformRows[0].sessions;
-  const avgDuration = Math.round(platformRows.slice(1).reduce((sum, row) => sum + row.duration, 0) / 3);
-  const avgPv = platformRows.slice(1).reduce((sum, row) => sum + row.pv, 0) / 3;
-  const zeroRate = 10 + rand() * 9;
-  $("kpiSessions").textContent = fmt.format(totalSessions);
-  $("kpiDuration").textContent = `${Math.floor(avgDuration / 60)}m ${avgDuration % 60}s`;
-  $("kpiPv").textContent = avgPv.toFixed(1);
-  $("kpiZero").textContent = pct(zeroRate);
-  $("kpiSessionsDelta").textContent = `+${pct(4 + rand() * 8)}`;
-  $("kpiDurationDelta").textContent = `+${pct(2 + rand() * 5)}`;
-  $("kpiPvDelta").textContent = `+${pct(1 + rand() * 4)}`;
-  $("kpiZeroDelta").textContent = `-${pct(1 + rand() * 3)}`;
-  renderTable("platformShare", [{ key: "platform", label: "플랫폼" }, { key: "sessions", label: "세션 수", num: true, format: fmt.format }, { key: "share", label: "비율", num: true, heat: true, format: pct }], platformRows);
-  renderTable("durationTable", [{ key: "platform", label: "플랫폼" }, { key: "duration", label: "평균 체류시간", num: true, format: (v) => `${Math.floor(v / 60)}m ${v % 60}s` }, { key: "share", label: "세션 비중", num: true, heat: true, format: pct }], platformRows.slice(1));
-  renderTable("pvTable", [{ key: "platform", label: "플랫폼" }, { key: "pv", label: "세션당 PV", num: true, format: (v) => v.toFixed(2) }, { key: "sessions", label: "세션 수", num: true, format: fmt.format }], platformRows.slice(1));
-  renderTable("durationDistribution", [{ key: "bucket", label: "체류시간 구간" }, { key: "web", label: "웹", num: true, format: fmt.format }, { key: "ios", label: "IOS", num: true, format: fmt.format }, { key: "aos", label: "AOS", num: true, format: fmt.format }], ["0-30초", "30초-3분", "3-10분", "10분 이상"].map((bucket, i) => ({ bucket, web: number(4200 - i * 420, 0.32), ios: number(3200 - i * 300, 0.3), aos: number(2800 - i * 260, 0.3) })));
-  renderTable("benchmarkTable", [{ key: "platform", label: "플랫폼" }, { key: "above", label: "기준 초과", num: true, heat: true, format: pct }, { key: "below", label: "기준 이하", num: true, format: pct }], platformRows.slice(1).map((row) => { const above = 42 + rand() * 22; return { platform: row.platform, above, below: 100 - above }; }));
-  renderLineChart("trafficTrend", [{ label: "웹", color: palette[0], points: lineSeries(24, 4200, 0.46) }, { label: "IOS", color: palette[1], points: lineSeries(24, 2800, 0.42) }, { label: "AOS", color: palette[2], points: lineSeries(24, 2400, 0.38) }]);
-  renderLineChart("pipelineTrend", multiSeries(customerTypes.slice(0, 4)));
-  renderTable("memberTable", [{ key: "type", label: "고객 타입" }, { key: "members", label: "누적 회원", num: true, format: fmt.format }, { key: "active", label: "활성 세션", num: true, format: fmt.format }, { key: "rate", label: "활성 비중", num: true, heat: true, format: pct }], customerTypes.map((type, i) => ({ type, members: number(18000 - i * 2100, 0.26), active: number(5200 - i * 530, 0.3), rate: 38 + rand() * 34 })));
-  renderTable("aboveAverageTable", [{ key: "type", label: "고객 타입" }, { key: "sessions", label: "초과 세션", num: true, format: fmt.format }, { key: "avg", label: "평균 체류시간", num: true }, { key: "users", label: "고객 수", num: true, format: fmt.format }], customerTypes.slice(0, 4).map((type, i) => ({ type, sessions: number(3400 - i * 280, 0.28), avg: `${7 + i}m ${number(22, 0.7)}s`, users: number(1480 - i * 110, 0.24) })));
-  renderTable("profileTable", [{ key: "user", label: "유저 ID" }, { key: "type", label: "고객 타입" }, { key: "status", label: "상태" }, { key: "last", label: "최근 행동" }], Array.from({ length: 8 }, (_, i) => ({ user: state.user || `user-${String(41 + i).padStart(3, "0")}`, type: customerTypes[i % customerTypes.length], status: i % 3 ? "활성" : "상담 예정", last: pages[i % pages.length] })));
-  renderTable("recommendTable", [{ key: "candidate", label: "추천 후보" }, { key: "reason", label: "추천 근거" }, { key: "score", label: "적합도", num: true, heat: true, format: pct }], ["웨딩홀 상담", "스드메 패키지", "본식스냅", "드레스 피팅", "청첩장 샘플"].map((candidate) => ({ candidate, reason: `${keywords[Math.floor(rand() * keywords.length)]} 탐색 빈도`, score: 54 + rand() * 38 })));
-  renderTable("journeyTable", [{ key: "session", label: "세션" }, { key: "journey", label: "페이지 이동 경로" }, { key: "duration", label: "체류시간", num: true }], Array.from({ length: 7 }, (_, i) => ({ session: `s-${number(9000 + i, 0.02)}`, journey: pages.slice(i % 3, (i % 3) + 4).join(" > "), duration: `${4 + i}m ${number(18, 0.7)}s` })));
-  const pageRows = pages.map((page, i) => ({ page, views: number(76000 - i * 6500, 0.28), sessions: number(34000 - i * 2800, 0.25), pv: 1.8 + rand() * 3.4, scroll: 34 + rand() * 54, deep: 18 + rand() * 42 }));
-  renderTable("pageViewsTable", [{ key: "page", label: "페이지 제목" }, { key: "views", label: "전체 조회수", num: true, format: fmt.format }, { key: "sessions", label: "조회 세션 수", num: true, format: fmt.format }, { key: "pv", label: "세션당 PV", num: true, format: (v) => v.toFixed(2) }], pageRows);
-  renderBarChart("entryExitChart", pageRows.slice(0, 6).map((row) => ({ page: row.page, entry: number(row.sessions * 0.34, 0.3), exit: number(row.sessions * 0.21, 0.3) })), "page", [{ key: "entry", label: "진입", color: palette[1] }, { key: "exit", label: "이탈", color: palette[3] }]);
-  renderTable("scrollTable", [{ key: "page", label: "페이지 제목" }, { key: "views", label: "전체 조회수", num: true, format: fmt.format }, { key: "scroll", label: "평균 스크롤 깊이", num: true, heat: true, format: pct }, { key: "deep", label: "깊은 탐색 비율", num: true, heat: true, format: pct }], pageRows);
-  renderBarChart("eventChart", ["페이지 조회", "버튼 클릭", "상품 클릭", "검색", "검색 결과 클릭", "콘텐츠 공유", "스크랩"].map((event, i) => ({ event, count: number(98000 - i * 9700, 0.35) })), "event", [{ key: "count", label: "이벤트 수", color: palette[0] }]);
-  renderTable("searchTable", [{ key: "keyword", label: "검색어" }, { key: "count", label: "검색 수", num: true, format: fmt.format }, { key: "zero", label: "무결과율", num: true, heat: true, format: pct }], keywords.map((keyword, i) => ({ keyword, count: number(9200 - i * 730, 0.34), zero: 6 + rand() * 22 })));
-  renderTable("keywordTypeTable", [{ key: "type", label: "고객 타입" }, { key: "top", label: "상위 검색어" }, { key: "share", label: "검색 비중", num: true, heat: true, format: pct }], customerTypes.map((type, i) => ({ type, top: keywords[i % keywords.length], share: 18 + rand() * 32 })));
-  renderTable("ctaTable", [{ key: "target", label: "클릭 대상" }, { key: "clicks", label: "클릭 수", num: true, format: fmt.format }, { key: "ctr", label: "CTR", num: true, heat: true, format: pct }], ["상담 신청 CTA", "견적 비교 버튼", "메인 배너", "리뷰 더보기", "예약 문의"].map((target, i) => ({ target, clicks: number(18400 - i * 1650, 0.28), ctr: 8 + rand() * 21 })));
-  renderTable("productTable", [{ key: "product", label: "상품·업체" }, { key: "clicks", label: "클릭 수", num: true, format: fmt.format }, { key: "users", label: "유저 수", num: true, format: fmt.format }], ["라움 웨딩홀", "아뜰리에 드레스", "브라이트 스냅", "블룸 메이크업", "오브제 플라워"].map((product, i) => ({ product, clicks: number(9600 - i * 810, 0.33), users: number(4200 - i * 290, 0.3) })));
-  renderTable("qualityTable", [{ key: "keyword", label: "검색어" }, { key: "result", label: "평균 결과 수", num: true, format: (v) => v.toFixed(1) }, { key: "clickRate", label: "결과 클릭률", num: true, heat: true, format: pct }], keywords.map((keyword) => ({ keyword, result: 8 + rand() * 31, clickRate: 32 + rand() * 48 })));
-  renderTable("conversionTable", [{ key: "keyword", label: "검색어" }, { key: "search", label: "검색 세션", num: true, format: fmt.format }, { key: "product", label: "상품 클릭 세션", num: true, format: fmt.format }, { key: "conversion", label: "전환율", num: true, heat: true, format: pct }], keywords.map((keyword, i) => { const search = number(6400 - i * 430, 0.3); const conversion = 18 + rand() * 36; return { keyword, search, product: Math.round((search * conversion) / 100), conversion }; }));
-  renderGauge("scrapGauge", ["신규 스크랩", "유지", "취소", "재스크랩"].map((label, i) => ({ label, value: [38, 31, 14, 17][i] + (rand() - 0.5) * 8 })));
-  renderTable("scrapSourceTable", [{ key: "status", label: "최종 상태" }, { key: "source", label: "발생 화면" }, { key: "count", label: "건수", num: true, format: fmt.format }], ["신규 스크랩", "유지", "취소", "재스크랩", "보류"].map((status, i) => ({ status, source: pages[(i + 1) % pages.length], count: number(3600 - i * 360, 0.32) })));
-  renderBarChart("environmentChart", ["웹 데스크톱", "웹 모바일", "IOS 모바일", "AOS 모바일", "IOS 태블릿", "AOS 태블릿"].map((env, i) => ({ env, sessions: number(38000 - i * 4300, 0.32) })), "env", [{ key: "sessions", label: "세션 수", color: palette[2] }]);
+
+function openPanelMenu(panel, anchor) {
+  closePanelMenu();
+  anchor.setAttribute("aria-expanded", "true");
+  const rect = anchor.getBoundingClientRect();
+  const menu = document.createElement("div");
+  menu.className = "panel-menu";
+  menu.innerHTML = `
+    <button type="button" data-action="view"><span>◎</span><span>View</span><span class="shortcut">v</span></button>
+    <button type="button" data-action="inspect"><span>◱</span><span>Edit</span><span class="shortcut">e</span></button>
+    <button type="button" data-action="inspect"><span>⌯</span><span>Share</span><span class="chev">›</span></button>
+    <button type="button" data-action="inspect"><span>◉</span><span>Explore</span><span class="shortcut">p x</span></button>
+    <button type="button" data-action="inspect"><span>ⓘ</span><span>Inspect</span><span class="shortcut">i</span></button>
+    <button type="button" data-action="inspect"><span>⬡</span><span>More...</span><span class="chev">›</span></button>
+  `;
+  menu.style.left = `${Math.max(6, Math.min(rect.left - 220, window.innerWidth - 260))}px`;
+  menu.style.top = `${rect.bottom + 6}px`;
+  menu.addEventListener("click", (event) => {
+    const action = event.target.closest("button")?.dataset.action;
+    if (!action) return;
+    closePanelMenu();
+    if (action === "view") openPanelView(panel.id);
+    if (action === "inspect") openInspect(panel.id, "query");
+  });
+  document.body.appendChild(menu);
 }
-function refresh() {
-  state.seed = Date.now() % 4294967296;
-  buildData();
+
+function openPanelView(panelId) {
+  activePanelId = panelId;
+  const panel = panels.find((item) => item.id === panelId);
+  if (!panel) return;
+  const slot = $("viewPanelSlot");
+  slot.innerHTML = "";
+  const node = makePanel(panel);
+  node.style.gridColumn = "";
+  node.style.gridRow = "";
+  slot.appendChild(node);
+  $("viewUserSearch").value = $("userSearch").value;
+  $("panelView").hidden = false;
+  document.body.style.overflow = "hidden";
 }
-$("userSearch").addEventListener("input", (event) => { state.user = event.target.value.trim(); state.seed = 42 + state.user.length * 97 + state.range; buildData(); });
-$("rangeSelect").addEventListener("change", (event) => { state.range = Number(event.target.value); state.seed += state.range * 13; buildData(); });
-$("refreshButton").addEventListener("click", refresh);
-$("liveToggle").addEventListener("change", (event) => { state.live = event.target.checked; if (state.live) startTimer(); else clearInterval(timer); });
-function startTimer() {
-  clearInterval(timer);
-  timer = setInterval(() => { if (state.live) refresh(); }, 8000);
+
+function closePanelView() {
+  $("panelView").hidden = true;
+  document.body.style.overflow = "";
+  activePanelId = null;
 }
-buildData();
-startTimer();
+
+function inspectPayload(panel, mode) {
+  if (mode === "query") {
+    return panel.query;
+  }
+  return JSON.stringify({
+    id: panel.id,
+    title: panel.title,
+    type: panel.type,
+    gridPos: {
+      x: panel.span[0] - 1,
+      y: panel.span[1] - 1,
+      w: panel.span[2],
+      h: panel.span[3],
+    },
+    targets: [{ refId: "A", datasource: commonSettings.datasource, rawSql: panel.query }],
+    fieldConfig: panel.settings,
+  }, null, 2);
+}
+
+function openInspect(panelId, mode = activeInspectMode) {
+  activePanelId = panelId;
+  activeInspectMode = mode;
+  const panel = panels.find((item) => item.id === panelId);
+  if (!panel) return;
+  $("inspectTitle").textContent = `${panel.title} - Inspect`;
+  $("queryTab").classList.toggle("active", mode === "query");
+  $("jsonTab").classList.toggle("active", mode === "json");
+  $("inspectBody").textContent = inspectPayload(panel, mode);
+  if (!$("inspectDialog").open) $("inspectDialog").showModal();
+}
+
+document.addEventListener("click", closePanelMenu);
+document.addEventListener("keydown", (event) => {
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
+  if (event.key === "Escape" && !$("inspectDialog").open && !$("panelView").hidden) closePanelView();
+  if (event.key.toLowerCase() === "v") {
+    const firstPanel = panels[0];
+    if (firstPanel && $("panelView").hidden) openPanelView(firstPanel.id);
+  }
+});
+
+$("refreshButton").addEventListener("click", renderDashboard);
+$("userSearch").addEventListener("input", renderDashboard);
+$("viewUserSearch").addEventListener("input", (event) => {
+  $("userSearch").value = event.target.value;
+  renderDashboard();
+  if (activePanelId) openPanelView(activePanelId);
+});
+$("closeView").addEventListener("click", closePanelView);
+$("viewCloseButton").addEventListener("click", closePanelView);
+$("viewInspectButton").addEventListener("click", () => {
+  if (activePanelId) openInspect(activePanelId, "query");
+});
+$("queryTab").addEventListener("click", () => {
+  if (activePanelId) openInspect(activePanelId, "query");
+});
+$("jsonTab").addEventListener("click", () => {
+  if (activePanelId) openInspect(activePanelId, "json");
+});
+
+renderDashboard();

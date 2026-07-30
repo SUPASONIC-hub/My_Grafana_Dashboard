@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>My_Grafana_Dashboard Customer Behavior Analytics Dashboard</title>
+    <title>YOZM Wedding Customer Behavior Analytics Dashboard</title>
     <meta
       name="description"
       content="Grafana 고객 행동 분석 대시보드를 보안 데이터를 제거한 포트폴리오용 인터랙티브 웹 대시보드로 재구성한 프로젝트입니다."
@@ -13,143 +13,110 @@
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <aside class="side-rail" aria-label="Grafana navigation">
-      <a class="rail-logo" href="#overview" aria-label="대시보드 상단으로 이동">G</a>
-      <a href="#overview" title="요약">O</a>
-      <a href="#customers" title="고객">C</a>
-      <a href="#content" title="콘텐츠">P</a>
-      <a href="#behavior" title="행동">B</a>
-      <a href="#environment" title="환경">U</a>
-    </aside>
-
-    <header class="topbar">
-      <div class="breadcrumb">
-        <span>Home</span>
+    <header class="grafana-topbar">
+      <div class="crumbs">
+        <button class="icon-button" type="button" aria-label="Toggle menu">☰</button>
+        <span class="grafana-mark">◎</span>
         <span>Dashboards</span>
-        <strong>My_Grafana_Dashboard</strong>
+        <span>YOZM_Dashboards</span>
+        <strong>요즘웨딩 고객 행동 분석 대시보드(YOZM Wedding Customer Behavior Analytics Dashboard)</strong>
+        <span>View panel</span>
+        <span class="star">★</span>
+        <span class="badge">Public</span>
       </div>
-      <nav class="nav" aria-label="대시보드 섹션">
-        <a href="#overview">요약</a>
-        <a href="#customers">고객</a>
-        <a href="#content">콘텐츠</a>
-        <a href="#behavior">행동</a>
-        <a href="#environment">환경</a>
-      </nav>
+      <div class="top-actions">
+        <label class="search-box" aria-label="Search">
+          <span>⌕</span>
+          <input type="search" placeholder="Search..." />
+          <kbd>ctrl+k</kbd>
+        </label>
+        <button class="icon-button" type="button" aria-label="Create">＋</button>
+        <button class="icon-button" type="button" aria-label="Help">?</button>
+        <span class="avatar">H</span>
+      </div>
     </header>
 
     <main>
-      <section id="overview" class="dashboard-header">
-        <div class="title-row">
-          <div>
-            <p class="eyebrow">Grafana snapshot recreation</p>
-            <h1>My_Grafana_Dashboard 고객 행동 분석 대시보드</h1>
-          </div>
-          <div class="dashboard-actions" aria-label="대시보드 작업">
-            <button id="refreshButton" type="button">Refresh data</button>
-            <label class="switch">
-              <input id="liveToggle" type="checkbox" checked />
-              <span>Live</span>
-            </label>
-          </div>
+      <section class="dashboard-toolbar" aria-label="대시보드 제어">
+        <div class="variable">
+          <span>유저 ID 검색</span>
+          <input id="userSearch" type="search" placeholder="Enter value" autocomplete="off" />
         </div>
-
-        <section class="controls" aria-label="대시보드 변수와 시간 범위">
-          <label>
-            Search_UserID
-            <input id="userSearch" type="search" placeholder="All" autocomplete="off" />
-          </label>
-          <label>
-            Time range
-            <select id="rangeSelect">
-              <option value="7">Last 7 days</option>
-              <option value="30" selected>Last 30 days</option>
-              <option value="90">Last 90 days</option>
-            </select>
-          </label>
-          <div class="time-readout">
-            <span>2026-05-01 03:00:00</span>
-            <span>to</span>
-            <span>2026-07-31 02:59:59</span>
-          </div>
-          <div class="snapshot-note">
-            <img src="./Profile.jpg" alt="" />
-            <span>Synthetic snapshot data</span>
-          </div>
-        </section>
-      </section>
-
-      <section class="kpis" aria-label="주요 지표">
-        <article><span>전체 세션</span><strong id="kpiSessions">0</strong><small id="kpiSessionsDelta">+0%</small></article>
-        <article><span>평균 체류시간</span><strong id="kpiDuration">0m</strong><small id="kpiDurationDelta">+0%</small></article>
-        <article><span>세션당 PV</span><strong id="kpiPv">0.0</strong><small id="kpiPvDelta">+0%</small></article>
-        <article><span>검색 무결과율</span><strong id="kpiZero">0%</strong><small id="kpiZeroDelta">-0%</small></article>
-      </section>
-
-      <section class="dashboard-row">
-        <div class="row-heading"><p>Row 1. Executive Summary</p><h2>주요 접속 지표 요약</h2></div>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>1-1. 플랫폼별 세션 비중</h3><span>table</span></div><div id="platformShare" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>1-2. 플랫폼별 평균 세션 체류시간</h3><span>table</span></div><div id="durationTable" class="table-wrap"></div></article>
-        </div>
-        <article class="panel wide"><div class="panel-head"><h3>1-3. 시간별 활성 세션 추이</h3><span>timeseries</span></div><div id="trafficTrend" class="chart tall"></div></article>
-        <div class="grid three">
-          <article class="panel"><div class="panel-head"><h3>1-4. 세션당 평균 PV</h3><span>table</span></div><div id="pvTable" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>1-5. 체류시간 분포</h3><span>table</span></div><div id="durationDistribution" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>1-6. 기준 초과/이하 세션 비중</h3><span>table</span></div><div id="benchmarkTable" class="table-wrap"></div></article>
+        <div class="toolbar-actions">
+          <button type="button" class="small-button">‹‹</button>
+          <button type="button" class="time-range">◷ 2026-05-01 12:00:00 to 2026-07-31 11:59:59</button>
+          <button type="button" class="small-button">››</button>
+          <button id="refreshButton" type="button" class="small-button">↻ Refresh</button>
+          <button type="button" class="share-button">⌯ Share</button>
+          <button type="button" class="small-button">✎ Edit</button>
         </div>
       </section>
 
-      <section id="customers" class="dashboard-row">
-        <div class="row-heading"><p>Row 2. Customer Type & Member Status</p><h2>고객 타입 및 회원 상태</h2></div>
-        <article class="panel wide"><div class="panel-head"><h3>2-1. 고객 유형 파이프라인 비중 변화</h3><span>timeseries</span></div><div id="pipelineTrend" class="chart tall"></div></article>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>2-2. 고객 타입별 누적 회원 현황</h3><span>table</span></div><div id="memberTable" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>2-3. 평균 체류시간 초과 세션 요약</h3><span>table</span></div><div id="aboveAverageTable" class="table-wrap"></div></article>
-        </div>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>2-4. 유저 마스터 정보</h3><span>table</span></div><div id="profileTable" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>2-5. 행동 기반 추천 후보</h3><span>table</span></div><div id="recommendTable" class="table-wrap"></div></article>
-        </div>
-        <article class="panel wide"><div class="panel-head"><h3>2-6. 유저 세션별 페이지 이동 경로</h3><span>table</span></div><div id="journeyTable" class="table-wrap"></div></article>
-      </section>
-
-      <section id="content" class="dashboard-row">
-        <div class="row-heading"><p>Row 3. Page & Content Performance</p><h2>화면·콘텐츠 성과</h2></div>
-        <article class="panel wide"><div class="panel-head"><h3>3-1. 페이지별 세션당 평균 조회수</h3><span>table</span></div><div id="pageViewsTable" class="table-wrap"></div></article>
-        <article class="panel wide"><div class="panel-head"><h3>3-2. 진입/이탈 페이지 분석</h3><span>barchart</span></div><div id="entryExitChart" class="chart"></div></article>
-        <article class="panel wide"><div class="panel-head"><h3>3-3. 페이지별 스크롤 탐색 깊이</h3><span>table</span></div><div id="scrollTable" class="table-wrap"></div></article>
-      </section>
-
-      <section id="behavior" class="dashboard-row">
-        <div class="row-heading"><p>Row 4. Behavior, Search & Click Analytics</p><h2>행동·검색·클릭 분석</h2></div>
-        <article class="panel wide"><div class="panel-head"><h3>4-1. 이벤트 유형별 발생 수</h3><span>barchart</span></div><div id="eventChart" class="chart"></div></article>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>4-2. 검색어 및 무결과율</h3><span>table</span></div><div id="searchTable" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>4-3. 고객 타입별 검색어</h3><span>table</span></div><div id="keywordTypeTable" class="table-wrap"></div></article>
-        </div>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>4-4. CTA·버튼·배너 클릭</h3><span>table</span></div><div id="ctaTable" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>4-5. 상품·업체 클릭</h3><span>table</span></div><div id="productTable" class="table-wrap"></div></article>
-        </div>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>4-6. 검색 결과 품질 지표</h3><span>table</span></div><div id="qualityTable" class="table-wrap"></div></article>
-          <article class="panel"><div class="panel-head"><h3>4-7. 검색어별 상품 클릭 전환</h3><span>table</span></div><div id="conversionTable" class="table-wrap"></div></article>
-        </div>
-        <div class="grid two">
-          <article class="panel"><div class="panel-head"><h3>4-8. 스크랩 상태 요약</h3><span>bargauge</span></div><div id="scrapGauge" class="gauge-list"></div></article>
-          <article class="panel"><div class="panel-head"><h3>4-9. 최종 스크랩 상태별 발생 화면 목록</h3><span>table</span></div><div id="scrapSourceTable" class="table-wrap"></div></article>
-        </div>
-      </section>
-
-      <section id="environment" class="dashboard-row">
-        <div class="row-heading"><p>Row 5. UX & Environment Metrics</p><h2>UX 및 환경 데이터</h2></div>
-        <article class="panel wide"><div class="panel-head"><h3>5-1. 플랫폼·기기 환경별 세션 분포</h3><span>barchart</span></div><div id="environmentChart" class="chart"></div></article>
-      </section>
+      <section id="dashboard" class="dashboard-grid" aria-label="Grafana dashboard panels"></section>
     </main>
 
-    <footer>
-      <span>Data: anonymized synthetic demo</span>
-    </footer>
+    <aside class="right-rail" aria-label="Grafana side tools">
+      <button type="button" class="icon-button">⇩</button>
+      <button type="button" class="icon-button">☷</button>
+      <span></span>
+      <button type="button" class="icon-button">▣</button>
+    </aside>
+
+    <div id="panelView" class="panel-view" hidden>
+      <header class="grafana-topbar view-topbar">
+        <div class="crumbs">
+          <button id="closeView" class="icon-button" type="button" aria-label="Back">‹</button>
+          <span class="grafana-mark">◎</span>
+          <span>Dashboards</span>
+          <span>YOZM_Dashboards</span>
+          <strong>요즘웨딩 고객 행동 분석 대시보드</strong>
+          <span>View panel</span>
+        </div>
+        <div class="top-actions">
+          <button id="viewInspectButton" type="button" class="small-button">Inspect</button>
+          <button id="viewCloseButton" type="button" class="share-button">Back</button>
+        </div>
+      </header>
+      <section class="dashboard-toolbar view-toolbar">
+        <div class="variable">
+          <span>유저 ID 검색</span>
+          <input id="viewUserSearch" type="search" placeholder="Enter value" autocomplete="off" />
+        </div>
+        <div class="toolbar-actions">
+          <button type="button" class="time-range">◷ 2026-05-01 12:00:00 to 2026-07-31 11:59:59</button>
+          <button type="button" class="small-button">↻ Refresh</button>
+          <button type="button" class="share-button">⌯ Share</button>
+          <button type="button" class="small-button">✎ Edit</button>
+        </div>
+      </section>
+      <section id="viewPanelSlot" class="view-panel-slot"></section>
+    </div>
+
+    <dialog id="inspectDialog" class="inspect-dialog">
+      <form method="dialog">
+        <header>
+          <strong id="inspectTitle">Panel inspect</strong>
+          <button type="submit" class="icon-button" aria-label="Close">×</button>
+        </header>
+      </form>
+      <div class="inspect-tabs" role="tablist">
+        <button id="queryTab" class="active" type="button">Query</button>
+        <button id="jsonTab" type="button">JSON</button>
+      </div>
+      <pre id="inspectBody"></pre>
+    </dialog>
+
+    <template id="panelTemplate">
+      <article class="panel">
+        <div class="panel-titlebar">
+          <h2></h2>
+          <div class="panel-actions">
+            <button class="panel-menu-button" type="button" aria-label="Panel menu">⋮</button>
+          </div>
+        </div>
+        <div class="panel-body"></div>
+      </article>
+    </template>
 
     <script src="./app.js"></script>
   </body>
