@@ -28,7 +28,7 @@ body {
   overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
-  font-size: 14px;
+  font-size: 14.5px;
   letter-spacing: 0;
 }
 button, input {
@@ -266,6 +266,8 @@ main {
 }
 .dashboard-section {
   min-width: 0;
+  content-visibility: auto;
+  contain-intrinsic-size: 720px;
 }
 .section-loading .row-grid::before {
   content: "Loading row...";
@@ -316,6 +318,19 @@ main {
 .panel:hover {
   border-color: #333b46;
 }
+.featured-panel {
+  border-color: #304156;
+  box-shadow: inset 0 1px 0 rgba(87, 148, 242, 0.22);
+}
+.featured-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: #5794f2;
+  opacity: 0.8;
+  pointer-events: none;
+}
 .panel-titlebar {
   height: 34px;
   display: flex;
@@ -331,7 +346,7 @@ main {
   margin: 0;
   overflow: hidden;
   color: #dce3ed;
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.2;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -343,12 +358,12 @@ main {
   gap: 2px;
 }
 .panel-tech-tags {
-  max-width: 34%;
+  max-width: 42%;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   overflow: hidden;
-  opacity: 0;
+  opacity: 0.72;
   transition: opacity 120ms ease;
 }
 .panel:hover .panel-tech-tags,
@@ -356,11 +371,11 @@ main {
   opacity: 1;
 }
 .panel-tech-tags span {
-  padding: 1px 5px;
+  padding: 2px 5px;
   border: 1px solid #293440;
   border-radius: 3px;
   color: #8ea0b8;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -369,7 +384,7 @@ main {
   padding: 0 8px;
   border-color: transparent;
   background: transparent;
-  color: #8b95a5;
+  color: #a9b4c3;
   font-size: 12px;
   font-weight: 800;
 }
@@ -414,7 +429,7 @@ table {
   min-width: 0;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 13.5px;
   font-variant-numeric: tabular-nums;
 }
 th, td {
@@ -512,7 +527,7 @@ tbody tr:hover td { background: #202630; }
 }
 .axis-text {
   fill: #8b95a5;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 .bar-value {
   fill: #cbd5e1;
@@ -526,7 +541,7 @@ tbody tr:hover td { background: #202630; }
   flex-wrap: wrap;
   gap: 9px;
   color: #9aa4b3;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 .legend i {
   width: 7px;

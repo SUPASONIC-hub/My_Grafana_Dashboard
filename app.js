@@ -17,9 +17,11 @@ let activeViewDocMode = "summary";
 let renderContext = "dashboard";
 let renderRowLimit = null;
 let renderGeneration = 0;
+let rowObserver = null;
 const chartObservers = new WeakMap();
 const chartContainers = new Set();
 const panelMetaCache = new Map();
+const featuredPanelIds = new Set(["active", "pipeline", "entry", "events", "scrap-gauge", "environment"]);
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -1029,6 +1031,7 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
 function makePanel(panel, placement) {
   const node = $("panelTemplate").content.firstElementChild.cloneNode(true);
   node.dataset.panelId = panel.id;
+  if (featuredPanelIds.has(panel.id)) node.classList.add("featured-panel");
   if (placement) {
     node.style.gridColumn = `${placement.x + 1} / span ${placement.w}`;
     node.style.gridRow = `${placement.y + 1} / span ${placement.h}`;
@@ -1071,6 +1074,8 @@ function renderDashboard() {
   const generation = ++renderGeneration;
   seed = 26 + $("userSearch").value.length * 101;
   const dashboard = $("dashboard");
+  rowObserver?.disconnect();
+  rowObserver = null;
   cleanupCharts(dashboard);
   dashboard.innerHTML = "";
   const pendingRows = [];
@@ -1088,6 +1093,18 @@ function renderDashboard() {
     dashboard.appendChild(section);
     if (index === 0) {
       renderRowContent(row, grid);
+    } else if ("IntersectionObserver" in window) {
+      rowObserver ??= new IntersectionObserver((entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting || generation !== renderGeneration) return;
+          const gridNode = entry.target.querySelector(".row-grid");
+          const rowIndex = Number(entry.target.dataset.rowIndex);
+          rowObserver.unobserve(entry.target);
+          if (layoutRows[rowIndex] && gridNode) renderRowContent(layoutRows[rowIndex], gridNode);
+        });
+      }, { rootMargin: "700px 0px" });
+      section.dataset.rowIndex = String(index);
+      rowObserver.observe(section);
     } else {
       pendingRows.push([row, grid]);
     }
@@ -1147,6 +1164,8 @@ function openPanelView(panelId) {
   renderViewDocs(panel);
   $("viewUserSearch").value = $("userSearch").value;
   $("panelView").hidden = false;
+  $("panelView").scrollTop = 0;
+  $("closeView").focus({ preventScroll: true });
   document.body.style.overflow = "hidden";
 }
 

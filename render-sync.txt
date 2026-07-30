@@ -1,1 +1,1 @@
-render-sync-marker: portfolio-dashboard-20260730-featured-r12
+render-sync-marker: portfolio-dashboard-20260730-ux-performance-r13
