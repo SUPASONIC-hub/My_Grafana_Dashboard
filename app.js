@@ -68,6 +68,14 @@ function setText(id, value) {
   if (node) node.textContent = value;
 }
 
+function setTabState(id, active) {
+  const node = $(id);
+  if (!node) return;
+  node.classList.toggle("active", active);
+  node.setAttribute("aria-selected", String(active));
+  node.tabIndex = active ? 0 : -1;
+}
+
 function makeSpark(score) {
   const bars = Array.from({ length: 18 }, (_, index) => {
     const hue = index < 5 ? colors.red : index < 11 ? colors.orange : index < 15 ? colors.yellow : colors.green;
@@ -1052,9 +1060,9 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
     spec: "Panel Spec: gridPos / fieldConfig / thresholds",
   };
   $("viewDocModeLabel").textContent = modeLabels[mode];
-  $("viewSummaryTab").classList.toggle("active", mode === "summary");
-  $("viewQueryTab").classList.toggle("active", mode === "query");
-  $("viewSpecTab").classList.toggle("active", mode === "spec");
+  setTabState("viewSummaryTab", mode === "summary");
+  setTabState("viewQueryTab", mode === "query");
+  setTabState("viewSpecTab", mode === "spec");
   $("viewDocBody").textContent = panelDocText(panel, mode);
 }
 
@@ -1104,7 +1112,9 @@ function renderRowContent(row, grid) {
   });
   grid.appendChild(fragment);
   grid.dataset.rendered = "true";
-  grid.closest(".dashboard-section")?.classList.remove("section-loading");
+  const section = grid.closest(".dashboard-section");
+  section?.classList.remove("section-loading");
+  section?.setAttribute("aria-busy", "false");
 }
 
 function renderDashboard() {
@@ -1122,6 +1132,7 @@ function renderDashboard() {
     const section = document.createElement("section");
     section.className = `dashboard-section${index ? " section-loading" : ""}`;
     section.dataset.rowIndex = String(index);
+    section.setAttribute("aria-busy", index ? "true" : "false");
     const titlebar = document.createElement("div");
     titlebar.className = "row-titlebar";
     const rowPanels = row.items.map((item) => panelById.get(item.id)).filter(Boolean);
@@ -1293,18 +1304,18 @@ document.addEventListener("pointerover", (event) => {
     tip.innerHTML = `<span class="tooltip-row"><i style="background:${attrText(target.dataset.tipColor || colors.blue)}"></i><b>${attrText(target.dataset.tip)}</b></span>`;
   }
   tip.hidden = false;
-});
+}, { passive: true });
 document.addEventListener("pointermove", (event) => {
   const tip = $("chartTooltip");
   if (!tip || tip.hidden) return;
   tip.style.left = `${Math.min(window.innerWidth - tip.offsetWidth - 12, event.clientX + 12)}px`;
   tip.style.top = `${Math.min(window.innerHeight - tip.offsetHeight - 8, Math.max(8, event.clientY - 34))}px`;
-});
+}, { passive: true });
 document.addEventListener("pointerout", (event) => {
   if (!event.target.closest("[data-tip], [data-tip-series]")) return;
   const tip = $("chartTooltip");
   if (tip) tip.hidden = true;
-});
+}, { passive: true });
 
 async function copyViewDoc() {
   const text = $("viewDocBody").textContent;

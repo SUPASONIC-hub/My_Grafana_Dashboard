@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Customer Behavior Analytics Dashboard</title>
-    <meta name="deployment-marker" content="portfolio-dashboard-20260730-view-performance-r15" />
+    <meta name="deployment-marker" content="portfolio-dashboard-20260730-accessibility-r16" />
     <meta
       name="description"
       content="Grafana 고객 행동 분석 대시보드를 보안 데이터를 제거한 포트폴리오용 인터랙티브 웹 대시보드로 재구성한 프로젝트입니다."
     />
     <link rel="icon" href="./Profile.jpg" />
     <link rel="apple-touch-icon" href="./Profile.jpg" />
-    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730-r15" />
+    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730-r16" />
   </head>
   <body>
     <header class="grafana-topbar">
@@ -25,7 +25,7 @@
         <span class="star">★</span>
         <span class="badge">Public</span>
         <span class="badge security-badge">Sanitized portfolio</span>
-        <span class="badge build-badge">Build r15</span>
+        <span class="badge build-badge">Build r16</span>
       </div>
       <div class="top-actions">
         <label class="search-box" aria-label="Search">
@@ -133,16 +133,16 @@
               <span>Production identifiers → synthetic IDs</span>
             </div>
           </div>
-          <div class="panel-doc-tabs" role="tablist">
-            <button id="viewSummaryTab" class="active" type="button">Summary</button>
-            <button id="viewQueryTab" type="button">Query</button>
-            <button id="viewSpecTab" type="button">Panel Spec</button>
+          <div class="panel-doc-tabs" role="tablist" aria-label="패널 문서 탭">
+            <button id="viewSummaryTab" class="active" type="button" role="tab" aria-controls="viewDocBody" aria-selected="true">Summary</button>
+            <button id="viewQueryTab" type="button" role="tab" aria-controls="viewDocBody" aria-selected="false">Query</button>
+            <button id="viewSpecTab" type="button" role="tab" aria-controls="viewDocBody" aria-selected="false">Panel Spec</button>
           </div>
           <div class="panel-doc-mode-note" aria-label="문서 탭 설명">
             <span id="viewDocModeLabel">Query: sanitized SQL</span>
             <span>Panel Spec: gridPos / fieldConfig / thresholds</span>
           </div>
-          <pre id="viewDocBody"></pre>
+          <pre id="viewDocBody" role="tabpanel" aria-live="polite"></pre>
         </aside>
       </section>
     </div>
@@ -174,7 +174,7 @@
       </article>
     </template>
 
-    <script src="./panel-docs.js?v=portfolio-polish-20260730-r15"></script>
-    <script src="./app.js?v=portfolio-polish-20260730-r15"></script>
+    <script src="./panel-docs.js?v=portfolio-polish-20260730-r16"></script>
+    <script src="./app.js?v=portfolio-polish-20260730-r16"></script>
   </body>
 </html>
