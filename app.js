@@ -714,51 +714,51 @@ const layoutRows = [
   {
     title: "Row 1. 주요 접속 지표 요약 (Executive Summary)",
     items: [
-      { id: "summary", x: 0, y: 0, w: 9, h: 7 },
-      { id: "os-duration", x: 9, y: 0, w: 15, h: 7 },
-      { id: "active", x: 0, y: 7, w: 24, h: 13 },
-      { id: "pv-summary", x: 0, y: 20, w: 24, h: 7 },
-      { id: "duration-bucket", x: 0, y: 27, w: 24, h: 7 },
-      { id: "threshold-summary", x: 0, y: 34, w: 24, h: 7 },
+      { id: "summary", x: 0, y: 0, w: 9, h: 6 },
+      { id: "os-duration", x: 9, y: 0, w: 15, h: 6 },
+      { id: "active", x: 0, y: 6, w: 24, h: 10 },
+      { id: "pv-summary", x: 0, y: 16, w: 24, h: 6 },
+      { id: "duration-bucket", x: 0, y: 22, w: 24, h: 6 },
+      { id: "threshold-summary", x: 0, y: 28, w: 24, h: 6 },
     ],
   },
   {
     title: "Row 2. 고객 타입 및 회원 상태 (Customer Type & Member Status)",
     items: [
-      { id: "pipeline", x: 0, y: 0, w: 24, h: 17 },
-      { id: "member-status", x: 0, y: 17, w: 24, h: 13 },
-      { id: "above-average", x: 0, y: 30, w: 24, h: 13 },
-      { id: "profile", x: 0, y: 43, w: 24, h: 11 },
-      { id: "recommend", x: 0, y: 54, w: 24, h: 12 },
-      { id: "journey", x: 0, y: 66, w: 24, h: 14 },
+      { id: "pipeline", x: 0, y: 0, w: 24, h: 13 },
+      { id: "member-status", x: 0, y: 13, w: 24, h: 9 },
+      { id: "above-average", x: 0, y: 22, w: 24, h: 9 },
+      { id: "profile", x: 0, y: 31, w: 24, h: 13 },
+      { id: "recommend", x: 0, y: 44, w: 24, h: 7 },
+      { id: "journey", x: 0, y: 51, w: 24, h: 11 },
     ],
   },
   {
     title: "Row 3. 화면·콘텐츠 성과 (Page & Content Performance)",
     items: [
-      { id: "page-performance", x: 0, y: 0, w: 24, h: 14 },
-      { id: "entry", x: 0, y: 14, w: 24, h: 17 },
-      { id: "scroll-depth", x: 0, y: 31, w: 24, h: 16 },
+      { id: "page-performance", x: 0, y: 0, w: 24, h: 12 },
+      { id: "entry", x: 0, y: 12, w: 24, h: 13 },
+      { id: "scroll-depth", x: 0, y: 25, w: 24, h: 12 },
     ],
   },
   {
     title: "Row 4. 행동·검색·클릭 분석 (Behavior, Search & Click Analytics)",
     items: [
-      { id: "events", x: 0, y: 0, w: 24, h: 17 },
-      { id: "search", x: 0, y: 17, w: 24, h: 15 },
-      { id: "keyword-type", x: 0, y: 32, w: 24, h: 18 },
-      { id: "cta", x: 0, y: 50, w: 24, h: 14 },
-      { id: "product-click", x: 0, y: 64, w: 24, h: 13 },
-      { id: "quality", x: 0, y: 77, w: 24, h: 15 },
-      { id: "conversion", x: 0, y: 92, w: 24, h: 17 },
-      { id: "scrap-gauge", x: 0, y: 109, w: 24, h: 11 },
-      { id: "scrap-source", x: 0, y: 120, w: 24, h: 14 },
+      { id: "events", x: 0, y: 0, w: 24, h: 12 },
+      { id: "search", x: 0, y: 12, w: 24, h: 12 },
+      { id: "keyword-type", x: 0, y: 24, w: 24, h: 12 },
+      { id: "cta", x: 0, y: 36, w: 24, h: 11 },
+      { id: "product-click", x: 0, y: 47, w: 24, h: 11 },
+      { id: "quality", x: 0, y: 58, w: 24, h: 11 },
+      { id: "conversion", x: 0, y: 69, w: 24, h: 12 },
+      { id: "scrap-gauge", x: 0, y: 81, w: 24, h: 8 },
+      { id: "scrap-source", x: 0, y: 89, w: 24, h: 10 },
     ],
   },
   {
     title: "Row 5. UX 및 환경 데이터 (UX & Environment Metrics)",
     items: [
-      { id: "environment", x: 0, y: 0, w: 24, h: 17 },
+      { id: "environment", x: 0, y: 0, w: 24, h: 12 },
     ],
   },
 ];
@@ -779,9 +779,47 @@ function panelDocText(panel, mode) {
   return mode === "query" ? doc.query : JSON.stringify(doc.panelSpec, null, 2);
 }
 
+function panelInsight(panel) {
+  const doc = panelDoc(panel);
+  const spec = doc?.panelSpec || {};
+  const key = panelDocKey(panel);
+  const columns = Array.isArray(spec.columns) ? spec.columns.map((column) => String(column).replaceAll("`", "")) : [];
+  const thresholds = spec.fieldConfig?.defaults?.thresholds?.steps?.length || panel.settings?.thresholds?.length || 0;
+  const overrides = Array.isArray(spec.fieldConfig?.overrides) ? spec.fieldConfig.overrides.length : 0;
+  const grid = spec.gridPos || {};
+  const prefix = key.split("-")[0];
+  const purposeByRow = {
+    "1": "플랫폼별 접속 규모, 체류시간, PV 품질을 한 화면에서 비교해 트래픽의 기본 상태를 판단합니다.",
+    "2": "고객 타입과 행동 이력을 결합해 활성 고객군, 추천 후보, 개별 여정을 추적하는 분석 역량을 보여줍니다.",
+    "3": "페이지 단위의 조회, 진입, 스크롤 깊이를 비교해 콘텐츠 성과와 UX 병목을 찾습니다.",
+    "4": "검색, 클릭, CTA, 스크랩 이벤트를 연결해 행동 데이터가 전환 지표로 이어지는 과정을 설명합니다.",
+    "5": "플랫폼과 기기 환경을 분리해 서비스 이용 환경의 편차를 점검합니다.",
+  };
+  const metricText = columns.length
+    ? `${columns.slice(0, 6).join(", ")}${columns.length > 6 ? ` 외 ${columns.length - 6}개` : ""}`
+    : `${spec.visualization || panel.type} 시각화 결과값`;
+  const gridText = Number.isFinite(grid.w) && Number.isFinite(grid.h) ? `gridPos ${grid.w}x${grid.h}` : "responsive panel grid";
+  const implementationParts = [
+    `${spec.visualization || panel.settings?.visualization || panel.type} 패널`,
+    gridText,
+    `${columns.length}개 컬럼`,
+    `${thresholds}단계 threshold`,
+    `${overrides}개 field override`,
+  ];
+  return {
+    purpose: purposeByRow[prefix] || "패널별 쿼리와 시각화 설정을 연결해 Grafana 구현 방식을 설명합니다.",
+    metrics: metricText,
+    implementation: implementationParts.join(" · "),
+  };
+}
+
 function renderViewDocs(panel, mode = activeViewDocMode) {
   activeViewDocMode = mode;
+  const insight = panelInsight(panel);
   $("viewDocTitle").textContent = panel.title;
+  $("viewPurpose").textContent = insight.purpose;
+  $("viewMetrics").textContent = insight.metrics;
+  $("viewImplementation").textContent = insight.implementation;
   $("viewQueryTab").classList.toggle("active", mode === "query");
   $("viewSpecTab").classList.toggle("active", mode === "spec");
   $("viewDocBody").textContent = panelDocText(panel, mode);
@@ -818,7 +856,7 @@ function renderDashboard() {
     const grid = document.createElement("div");
     grid.className = "row-grid";
     const rowHeight = Math.max(...row.items.map((item) => item.y + item.h));
-    grid.style.gridTemplateRows = `repeat(${rowHeight}, 24px)`;
+    grid.style.gridTemplateRows = `repeat(${rowHeight}, 26px)`;
     row.items.forEach((item) => {
       const panel = panelById.get(item.id);
       if (panel) grid.appendChild(makePanel(panel, item));

@@ -28,7 +28,7 @@ body {
   overflow-x: hidden;
   background: var(--bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0;
 }
 button, input {
@@ -150,7 +150,7 @@ main {
   width: 100%;
   max-width: 100vw;
   overflow-x: hidden;
-  padding: 10px 50px 20px 10px;
+  padding: 10px 48px 18px 10px;
 }
 .dashboard-toolbar {
   display: flex;
@@ -208,18 +208,18 @@ main {
 
 .dashboard-grid {
   display: grid;
-  gap: 6px;
+  gap: 5px;
   min-width: 0;
 }
 .dashboard-section {
   min-width: 0;
 }
 .row-titlebar {
-  height: 30px;
+  height: 28px;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
   padding: 0 9px;
   border: 1px solid #202630;
   border-radius: 2px;
@@ -235,8 +235,8 @@ main {
 .row-grid {
   display: grid;
   grid-template-columns: repeat(24, minmax(0, 1fr));
-  grid-auto-rows: 24px;
-  gap: 6px;
+  grid-auto-rows: 26px;
+  gap: 5px;
   min-width: 0;
 }
 .panel {
@@ -263,7 +263,7 @@ main {
   margin: 0;
   overflow: hidden;
   color: #dce3ed;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.2;
   font-weight: 700;
   text-overflow: ellipsis;
@@ -292,7 +292,8 @@ main {
 .grafana-table {
   width: 100%;
   height: 100%;
-  overflow: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   scrollbar-color: #596271 #10151b;
 }
 table {
@@ -300,12 +301,12 @@ table {
   min-width: 0;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
   font-variant-numeric: tabular-nums;
 }
 th, td {
-  height: 27px;
-  padding: 5px 7px;
+  height: 30px;
+  padding: 6px 8px;
   border-right: 1px solid var(--grid-soft);
   border-bottom: 1px solid var(--grid-soft);
   color: #c6ced9;
@@ -364,7 +365,7 @@ tbody tr:hover td { background: #202630; }
 }
 .axis-text {
   fill: #8b95a5;
-  font-size: 12px;
+  font-size: 13px;
 }
 .legend {
   position: absolute;
@@ -374,7 +375,7 @@ tbody tr:hover td { background: #202630; }
   flex-wrap: wrap;
   gap: 9px;
   color: #9aa4b3;
-  font-size: 12px;
+  font-size: 13px;
 }
 .legend i {
   width: 7px;
@@ -483,6 +484,8 @@ tbody tr:hover td { background: #202630; }
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   border: 1px solid #252d38;
   border-radius: 3px;
   background: #11161c;
@@ -507,6 +510,30 @@ tbody tr:hover td { background: #202630; }
   font-size: 12px;
   text-transform: uppercase;
 }
+.panel-doc-summary {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #252d38;
+  background: #0f141a;
+}
+.panel-doc-summary section {
+  min-width: 0;
+}
+.panel-doc-summary span {
+  display: block;
+  margin-bottom: 3px;
+  color: #73bf69;
+  font-size: 12px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.panel-doc-summary p {
+  margin: 0;
+  color: #d2dae5;
+  font-size: 13px;
+  line-height: 1.45;
+}
 .panel-doc-tabs {
   height: 34px;
   display: flex;
@@ -528,15 +555,17 @@ tbody tr:hover td { background: #202630; }
   color: #fff;
 }
 .panel-docs pre {
-  height: calc(100% - 72px);
+  flex: 1;
+  min-height: 0;
   margin: 0;
   overflow: auto;
   padding: 14px;
   background: #0b0f14;
   color: #cbd5e1;
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.55;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .inspect-dialog {
@@ -582,9 +611,10 @@ tbody tr:hover td { background: #202630; }
   padding: 14px;
   background: #0b0f14;
   color: #d9e0ea;
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.55;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 1400px) {
@@ -617,6 +647,6 @@ tbody tr:hover td { background: #202630; }
     height: 55vh;
   }
   .panel-docs {
-    height: 42vh;
+    height: 48vh;
   }
 }

@@ -10,7 +10,7 @@
     />
     <link rel="icon" href="./Profile.jpg" />
     <link rel="apple-touch-icon" href="./Profile.jpg" />
-    <link rel="stylesheet" href="./styles.css?v=ui-polish-20260730" />
+    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730" />
   </head>
   <body>
     <header class="grafana-topbar">
@@ -96,6 +96,20 @@
             <strong id="viewDocTitle">Panel documentation</strong>
             <span>sanitized</span>
           </div>
+          <div class="panel-doc-summary" aria-label="패널 구현 요약">
+            <section>
+              <span>Purpose</span>
+              <p id="viewPurpose"></p>
+            </section>
+            <section>
+              <span>Metrics</span>
+              <p id="viewMetrics"></p>
+            </section>
+            <section>
+              <span>Implementation</span>
+              <p id="viewImplementation"></p>
+            </section>
+          </div>
           <div class="panel-doc-tabs" role="tablist">
             <button id="viewQueryTab" class="active" type="button">Query</button>
             <button id="viewSpecTab" type="button">Panel Spec</button>
@@ -131,7 +145,7 @@
       </article>
     </template>
 
-    <script src="./panel-docs.js?v=ui-polish-20260730"></script>
-    <script src="./app.js?v=ui-polish-20260730"></script>
+    <script src="./panel-docs.js?v=portfolio-polish-20260730"></script>
+    <script src="./app.js?v=portfolio-polish-20260730"></script>
   </body>
 </html>
