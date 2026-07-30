@@ -1,1 +1,1 @@
-render-sync-marker: portfolio-dashboard-20260730-polish-r7
+render-sync-marker: portfolio-dashboard-20260730-scrollfix-r8

@@ -790,8 +790,8 @@ const layoutRows = [
       { id: "os-duration", x: 9, y: 0, w: 15, h: 6 },
       { id: "active", x: 0, y: 6, w: 24, h: 12 },
       { id: "pv-summary", x: 0, y: 18, w: 24, h: 6 },
-      { id: "duration-bucket", x: 0, y: 24, w: 24, h: 6 },
-      { id: "threshold-summary", x: 0, y: 30, w: 24, h: 6 },
+      { id: "duration-bucket", x: 0, y: 24, w: 24, h: 8 },
+      { id: "threshold-summary", x: 0, y: 32, w: 24, h: 6 },
     ],
   },
   {
@@ -801,8 +801,8 @@ const layoutRows = [
       { id: "member-status", x: 0, y: 15, w: 24, h: 9 },
       { id: "above-average", x: 0, y: 24, w: 24, h: 9 },
       { id: "profile", x: 0, y: 33, w: 24, h: 13 },
-      { id: "recommend", x: 0, y: 46, w: 24, h: 7 },
-      { id: "journey", x: 0, y: 53, w: 24, h: 11 },
+      { id: "recommend", x: 0, y: 46, w: 24, h: 9 },
+      { id: "journey", x: 0, y: 55, w: 24, h: 11 },
     ],
   },
   {
@@ -1022,7 +1022,7 @@ function makePanel(panel, placement) {
   const previousContext = renderContext;
   const previousRowLimit = renderRowLimit;
   renderContext = placement ? "dashboard" : "view";
-  renderRowLimit = placement ? Math.max(5, Math.min(20, Math.floor((placement.h * 26 - 52) / 30))) : null;
+  renderRowLimit = placement ? Math.max(4, Math.min(20, Math.floor((placement.h * 26 - 64) / 30))) : null;
   panel.render(body);
   renderContext = previousContext;
   renderRowLimit = previousRowLimit;
