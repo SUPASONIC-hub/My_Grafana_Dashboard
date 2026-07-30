@@ -14,6 +14,7 @@ let seed = 26;
 let activePanelId = null;
 let activeInspectMode = "query";
 let activeViewDocMode = "query";
+let renderContext = "dashboard";
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -50,8 +51,9 @@ function makeSpark(score) {
 }
 
 function renderTable(container, columns, rows) {
+  const visibleRows = renderContext === "dashboard" && rows.length > 18 ? rows.slice(0, 18) : rows;
   const head = columns.map((column) => `<th class="${column.num ? "num" : ""}" title="${attrText(column.label)}">${column.label}</th>`).join("");
-  const body = rows.map((row) => {
+  const body = visibleRows.map((row) => {
     const cells = columns.map((column) => {
       const raw = row[column.key];
       const value = column.render ? column.render(raw, row) : column.format ? column.format(raw) : raw;
@@ -59,7 +61,8 @@ function renderTable(container, columns, rows) {
     }).join("");
     return `<tr>${cells}</tr>`;
   }).join("");
-  container.innerHTML = `<div class="grafana-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+  const summary = visibleRows.length < rows.length ? `<div class="table-preview-note">Preview ${visibleRows.length} / ${rows.length} rows · View에서 전체 확인</div>` : "";
+  container.innerHTML = `<div class="grafana-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>${summary}</div>`;
 }
 
 function renderNoData(container) {
@@ -69,7 +72,7 @@ function renderNoData(container) {
 function renderLineChart(container, series) {
   const width = 1200;
   const height = 280;
-  const pad = { top: 14, right: 22, bottom: 34, left: 46 };
+  const pad = { top: 8, right: 6, bottom: 25, left: 34 };
   const values = series.flatMap((item) => item.values);
   const max = Math.max(...values) * 1.18;
   const x = (index) => pad.left + (index / (series[0].values.length - 1)) * (width - pad.left - pad.right);
@@ -85,25 +88,25 @@ function renderLineChart(container, series) {
   const paths = series.map((item) => {
     const d = item.values.map((value, index) => `${index ? "L" : "M"} ${x(index)} ${y(value)}`).join(" ");
     const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
-    return `<path d="${fill}" fill="${item.color}" opacity="0.12"></path><path d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>`;
+    return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>`;
   }).join("");
   const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.name}</span>`).join("");
-  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="time series">${grid}${paths}${ticks}</svg><div class="legend">${legend}</div></div>`;
+  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="time series">${grid}${paths}${ticks}</svg><div class="legend">${legend}</div></div>`;
 }
 
 function renderBarChart(container, rows, mode = "horizontal") {
   const width = 1200;
-  const height = Math.max(260, rows.length * 24 + 40);
-  const left = 210;
+  const height = Math.max(220, rows.length * 24 + 28);
+  const left = Math.min(185, Math.max(118, Math.round(width * 0.14)));
   const max = Math.max(...rows.map((row) => row.value));
   const bars = rows.map((row, index) => {
-    const y = 15 + index * 24;
-    const w = (row.value / max) * (width - left - 60);
+    const y = 8 + index * 24;
+    const w = (row.value / max) * (width - left - 12);
     return `<text class="axis-text" x="${left - 8}" y="${y + 13}" text-anchor="end">${row.label}</text>
       <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}"></rect>
-      <text class="axis-text" x="${left + w + 7}" y="${y + 12}">${fmt.format(row.value)}</text>`;
+      <text class="axis-text bar-value" x="${Math.min(width - 4, left + w + 7)}" y="${y + 12}" text-anchor="end">${fmt.format(row.value)}</text>`;
   }).join("");
-  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
+  container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
 }
 
 function lineValues(base, points = 24, spread = 0.85) {
@@ -788,6 +791,33 @@ function panelInsight(panel) {
   const overrides = Array.isArray(spec.fieldConfig?.overrides) ? spec.fieldConfig.overrides.length : 0;
   const grid = spec.gridPos || {};
   const prefix = key.split("-")[0];
+  const purposeByPanel = {
+    summary: "플랫폼별 세션 규모와 비중을 비교해 트래픽 유입 구조를 빠르게 판단합니다.",
+    "os-duration": "플랫폼별 평균, 중앙값, 최대 체류시간을 비교해 이용 품질의 편차를 확인합니다.",
+    active: "시간대별 활성 세션 추이를 라인 차트로 보여 피크 시간과 플랫폼별 변동성을 파악합니다.",
+    "pv-summary": "세션당 평균 PV를 플랫폼별로 비교해 방문 깊이와 탐색 강도를 평가합니다.",
+    "duration-bucket": "체류시간 구간 분포를 나눠 짧은 방문과 깊은 방문의 비중을 확인합니다.",
+    "threshold-summary": "기준 체류시간 초과/이하 세션을 비교해 세션 품질을 임계값 기반으로 해석합니다.",
+    pipeline: "고객 타입별 비중 변화를 시간 흐름으로 추적해 고객군 전환 흐름을 설명합니다.",
+    "member-status": "고객 타입별 누적 회원과 활성 회원을 비교해 현재 고객 기반을 요약합니다.",
+    "above-average": "평균 체류시간을 넘는 고객군을 분리해 관심도가 높은 세션 집단을 식별합니다.",
+    profile: "고객 마스터와 행동 집계를 연결해 개인 단위 분석 데이터마트 구성을 보여줍니다.",
+    recommend: "행동 점수를 기반으로 추천 후보를 산출해 분석 결과가 개인화 액션으로 이어지는 구조를 보여줍니다.",
+    journey: "세션별 페이지 이동 경로를 펼쳐 사용자의 실제 탐색 흐름과 이탈 가능 지점을 확인합니다.",
+    "page-performance": "페이지별 조회와 세션 성과를 비교해 핵심 콘텐츠의 기여도를 평가합니다.",
+    entry: "진입 화면별 유입 규모를 막대 차트로 비교해 첫 접점의 집중도를 확인합니다.",
+    "scroll-depth": "페이지별 스크롤 깊이와 깊은 탐색 비율을 연결해 콘텐츠 소비 품질을 평가합니다.",
+    events: "이벤트 유형별 발생량을 비교해 행동 데이터 수집 범위와 주요 액션 비중을 보여줍니다.",
+    search: "검색어별 검색 수와 무결과율을 함께 보여 검색 UX 개선 대상을 찾습니다.",
+    "keyword-type": "고객 타입별 검색어 패턴을 비교해 고객군별 관심사의 차이를 확인합니다.",
+    cta: "CTA, 버튼, 배너 클릭 성과를 비교해 화면 내 액션 유도 요소의 효과를 평가합니다.",
+    "product-click": "상품 및 업체 클릭 데이터를 집계해 관심 상품군과 클릭 집중도를 분석합니다.",
+    quality: "검색 결과 수, 첫 클릭 순위, 무결과율을 조합해 검색 결과 품질을 진단합니다.",
+    conversion: "검색에서 결과 클릭, 상품 클릭까지 이어지는 전환 흐름을 키워드 단위로 확인합니다.",
+    "scrap-gauge": "스크랩 유지, 추가, 취소 상태를 비교해 관심 행동의 현재 상태를 요약합니다.",
+    "scrap-source": "최종 스크랩 상태가 발생한 화면을 분석해 관심 저장 행동의 맥락을 확인합니다.",
+    environment: "플랫폼, 기기, 브라우저 환경별 세션 분포를 비교해 UX 대응 우선순위를 잡습니다.",
+  };
   const purposeByRow = {
     "1": "플랫폼별 접속 규모, 체류시간, PV 품질을 한 화면에서 비교해 트래픽의 기본 상태를 판단합니다.",
     "2": "고객 타입과 행동 이력을 결합해 활성 고객군, 추천 후보, 개별 여정을 추적하는 분석 역량을 보여줍니다.",
@@ -807,7 +837,7 @@ function panelInsight(panel) {
     `${overrides}개 field override`,
   ];
   return {
-    purpose: purposeByRow[prefix] || "패널별 쿼리와 시각화 설정을 연결해 Grafana 구현 방식을 설명합니다.",
+    purpose: purposeByPanel[panel.id] || purposeByRow[prefix] || "패널별 쿼리와 시각화 설정을 연결해 Grafana 구현 방식을 설명합니다.",
     metrics: metricText,
     implementation: implementationParts.join(" · "),
   };
@@ -833,8 +863,12 @@ function makePanel(panel, placement) {
     node.style.gridRow = `${placement.y + 1} / span ${placement.h}`;
   }
   node.querySelector("h2").textContent = panel.title;
+  if (["timeseries", "barchart", "bargauge"].includes(panel.type)) node.classList.add("chart-panel");
   const body = node.querySelector(".panel-body");
+  const previousContext = renderContext;
+  renderContext = placement ? "dashboard" : "view";
   panel.render(body);
+  renderContext = previousContext;
   const menuButton = node.querySelector(".panel-menu-button");
   menuButton.addEventListener("click", (event) => {
     event.stopPropagation();
