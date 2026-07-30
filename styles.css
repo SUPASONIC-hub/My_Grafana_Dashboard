@@ -193,7 +193,8 @@ main {
   font-weight: 700;
 }
 .implementation-strip span:nth-child(2),
-.implementation-strip span:nth-child(4) {
+.implementation-strip span:nth-child(4),
+.implementation-strip span:nth-child(6) {
   border-color: #284a37;
   color: #9fe3ad;
 }
@@ -318,6 +319,12 @@ main {
   align-items: center;
   gap: 3px;
   overflow: hidden;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+.panel:hover .panel-tech-tags,
+.view-panel-slot .panel-tech-tags {
+  opacity: 1;
 }
 .panel-tech-tags span {
   padding: 1px 5px;
@@ -685,6 +692,55 @@ tbody tr:hover td { background: #202630; }
   color: #9fe3ad;
   font-size: 11px;
   font-style: normal;
+  font-weight: 800;
+}
+.summary-spec-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  border: 1px solid #26313d;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.summary-spec-list div {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  min-height: 34px;
+  border-bottom: 1px solid #26313d;
+}
+.summary-spec-list div:last-child {
+  border-bottom: 0;
+}
+.summary-spec-list dt,
+.summary-spec-list dd {
+  margin: 0;
+  padding: 8px 10px;
+  line-height: 1.35;
+}
+.summary-spec-list dt {
+  background: #121820;
+  color: #9fe3ad;
+  font-size: 12px;
+  font-weight: 900;
+}
+.summary-spec-list dd {
+  color: #d2dae5;
+  font-size: 13px;
+}
+.sanitization-rules {
+  display: grid;
+  gap: 5px;
+}
+.sanitization-rules span {
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid #284a37;
+  border-radius: 3px;
+  background: rgba(115, 191, 105, 0.06);
+  color: #bfe8c8;
+  font-size: 12px;
   font-weight: 800;
 }
 .panel-doc-tabs {

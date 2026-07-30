@@ -845,6 +845,11 @@ function panelDoc(panel) {
   return window.panelDocumentation?.[panelDocKey(panel)];
 }
 
+function displayPanelTitle(panel, placement) {
+  if (!placement) return panel.title;
+  return panel.title.replace(/\s*\([^)]*\)/g, "").replace(/_개인 전용/g, "").trim();
+}
+
 function panelDocText(panel, mode) {
   const doc = panelDoc(panel);
   if (mode === "summary") return panelSummaryText(panel);
@@ -962,6 +967,18 @@ function panelSummaryText(panel) {
   ].join("\n");
 }
 
+function panelSpecRows(panel) {
+  const insight = panelInsight(panel);
+  const evidence = panelEvidence(panel);
+  return [
+    ["Analysis Goal", insight.purpose],
+    ["Data Modeling", insight.metrics],
+    ["Grafana Implementation", insight.implementation],
+    ["Security", "실제 테이블/컬럼/식별자는 의미 기반 한글명과 합성 ID로 치환했습니다."],
+    ["Evidence", `Query ${fmt.format(evidence.queryLines)} lines · ${fmt.format(evidence.overrides)} overrides · ${fmt.format(evidence.thresholds)} thresholds`],
+  ];
+}
+
 function renderViewDocs(panel, mode = activeViewDocMode) {
   activeViewDocMode = mode;
   const insight = panelInsight(panel);
@@ -977,6 +994,7 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
     ["Columns", evidence.columns],
   ].map(([label, value]) => `<span><strong>${fmt.format(value)}</strong>${label}</span>`).join("");
   $("viewEvidenceBadges").insertAdjacentHTML("beforeend", panelTechTags(panel).map((tag) => `<em>${tag}</em>`).join(""));
+  $("viewSpecList").innerHTML = panelSpecRows(panel).map(([key, value]) => `<div><dt>${key}</dt><dd>${value}</dd></div>`).join("");
   const modeLabels = {
     summary: "Summary: purpose / metrics / implementation",
     query: "Query: sanitized SQL",
@@ -996,7 +1014,8 @@ function makePanel(panel, placement) {
     node.style.gridColumn = `${placement.x + 1} / span ${placement.w}`;
     node.style.gridRow = `${placement.y + 1} / span ${placement.h}`;
   }
-  node.querySelector("h2").textContent = panel.title;
+  node.querySelector("h2").textContent = displayPanelTitle(panel, placement);
+  node.querySelector("h2").title = panel.title;
   if (["timeseries", "barchart", "bargauge"].includes(panel.type)) node.classList.add("chart-panel");
   node.querySelector(".panel-actions").insertAdjacentHTML("beforebegin", `<div class="panel-tech-tags">${panelTechTags(panel).map((tag) => `<span>${tag}</span>`).join("")}</div>`);
   const body = node.querySelector(".panel-body");
@@ -1168,7 +1187,7 @@ document.addEventListener("pointermove", (event) => {
   const tip = $("chartTooltip");
   if (!tip || tip.hidden) return;
   tip.style.left = `${Math.min(window.innerWidth - tip.offsetWidth - 12, event.clientX + 12)}px`;
-  tip.style.top = `${Math.max(8, event.clientY - 34)}px`;
+  tip.style.top = `${Math.min(window.innerHeight - tip.offsetHeight - 8, Math.max(8, event.clientY - 34))}px`;
 });
 document.addEventListener("pointerout", (event) => {
   if (!event.target.closest("[data-tip], [data-tip-series]")) return;
