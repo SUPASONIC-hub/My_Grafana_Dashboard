@@ -192,6 +192,9 @@ main {
   font-size: 12px;
   font-weight: 700;
 }
+.implementation-strip span[id] {
+  font-variant-numeric: tabular-nums;
+}
 .implementation-strip span:nth-child(2),
 .implementation-strip span:nth-child(4),
 .implementation-strip span:nth-child(6) {
@@ -299,6 +302,32 @@ main {
   content: "▾";
   color: #8792a2;
   font-size: 12px;
+}
+.row-titlebar strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: inherit;
+}
+.row-titlebar span,
+.row-titlebar em {
+  flex: 0 0 auto;
+  min-height: 20px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 6px;
+  border: 1px solid #2a3440;
+  border-radius: 3px;
+  background: #121820;
+  color: #98a5b5;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+.row-titlebar em {
+  border-color: #28394f;
+  color: #9fbff4;
 }
 .row-grid {
   display: grid;
@@ -986,5 +1015,11 @@ tbody tr:hover td { background: #202630; }
   }
   .panel-docs {
     height: 48vh;
+  }
+  .row-titlebar em {
+    display: none;
+  }
+  .implementation-strip span {
+    flex: 1 1 155px;
   }
 }

@@ -63,6 +63,11 @@ function attrText(value) {
     .replace(/>/g, "&gt;");
 }
 
+function setText(id, value) {
+  const node = $(id);
+  if (node) node.textContent = value;
+}
+
 function makeSpark(score) {
   const bars = Array.from({ length: 18 }, (_, index) => {
     const hue = index < 5 ? colors.red : index < 11 ? colors.orange : index < 15 ? colors.yellow : colors.green;
@@ -950,6 +955,31 @@ function panelEvidence(panel) {
   return { columns: columns.length, thresholds, overrides, queryLines };
 }
 
+function portfolioEvidence() {
+  return panels.reduce((stats, panel) => {
+    const evidence = panelEvidence(panel);
+    const { spec } = cachedPanelMeta(panel);
+    stats.queryLines += evidence.queryLines;
+    stats.columns += evidence.columns;
+    stats.overrides += evidence.overrides;
+    stats.thresholds += evidence.thresholds;
+    if (spec.gridPos) stats.gridPanels += 1;
+    if (panelDoc(panel)) stats.documentedPanels += 1;
+    return stats;
+  }, { queryLines: 0, columns: 0, overrides: 0, thresholds: 0, gridPanels: 0, documentedPanels: 0 });
+}
+
+function renderPortfolioEvidence() {
+  const evidence = portfolioEvidence();
+  setText("panelCountBadge", `${fmt.format(panels.length)} panels`);
+  setText("queryEvidenceBadge", `${fmt.format(evidence.queryLines)} sanitized SQL lines`);
+  setText("layoutEvidenceBadge", `${fmt.format(evidence.gridPanels)} gridPos specs`);
+  setText("fieldConfigBadge", `${fmt.format(evidence.overrides)} overrides · ${fmt.format(evidence.thresholds)} thresholds`);
+  setText("viewEvidenceBadge", `${fmt.format(evidence.documentedPanels)} View docs`);
+  setText("securityEvidenceBadge", `${fmt.format(evidence.columns)} aliased columns`);
+  setText("renderEvidenceBadge", "Lazy row rendering");
+}
+
 function panelTechTags(panel) {
   const evidence = panelEvidence(panel);
   const tags = [panel.settings?.visualization || panel.type];
@@ -1084,7 +1114,9 @@ function renderDashboard() {
     section.className = `dashboard-section${index ? " section-loading" : ""}`;
     const titlebar = document.createElement("div");
     titlebar.className = "row-titlebar";
-    titlebar.textContent = row.title;
+    const rowPanels = row.items.map((item) => panelById.get(item.id)).filter(Boolean);
+    const rowTypes = [...new Set(rowPanels.map((panel) => panel.settings?.visualization || panel.type))].slice(0, 3);
+    titlebar.innerHTML = `<strong>${attrText(row.title)}</strong><span>${fmt.format(rowPanels.length)} panels</span><em>${rowTypes.map(attrText).join(" · ")}</em>`;
     const grid = document.createElement("div");
     grid.className = "row-grid";
     const rowHeight = Math.max(...row.items.map((item) => item.y + item.h));
@@ -1094,12 +1126,12 @@ function renderDashboard() {
     if (index === 0) {
       renderRowContent(row, grid);
     } else if ("IntersectionObserver" in window) {
-      rowObserver ??= new IntersectionObserver((entries) => {
+      rowObserver ??= new IntersectionObserver((entries, observer) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting || generation !== renderGeneration) return;
           const gridNode = entry.target.querySelector(".row-grid");
           const rowIndex = Number(entry.target.dataset.rowIndex);
-          rowObserver.unobserve(entry.target);
+          observer.unobserve(entry.target);
           if (layoutRows[rowIndex] && gridNode) renderRowContent(layoutRows[rowIndex], gridNode);
         });
       }, { rootMargin: "700px 0px" });
@@ -1306,4 +1338,5 @@ $("jsonTab").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "json");
 });
 
+renderPortfolioEvidence();
 renderDashboard();
