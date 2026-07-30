@@ -72,6 +72,12 @@ function generatedRows(count, factory) {
   return rows;
 }
 
+function mappedRows(rows, factory) {
+  const nextRows = rows.map(factory);
+  if (rows.totalRows) nextRows.totalRows = rows.totalRows;
+  return nextRows;
+}
+
 function renderTable(container, columns, rows) {
   const limit = renderRowLimit || 18;
   const totalRows = rows.totalRows || rows.length;
@@ -502,7 +508,7 @@ const panels = [
         { key: "journey", label: "페이지 이동 경로", render: (value) => `<span class="link-cell">${value}</span>` },
         { key: "duration", label: "체류시간" },
         { key: "pv", label: "PV", num: true },
-      ], Array.from({ length: 32 }, (_, index) => {
+      ], generatedRows(32, (index) => {
         const paths = ["/", "/search", "/product/detail", "/estimate", "/consulting", "/my/scrap"];
         return {
           rank: index + 1,
@@ -543,7 +549,7 @@ const panels = [
     query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal" },
     render(container) {
-      renderBarChart(container, pageRows(28).map((row, index) => ({
+      renderBarChart(container, mappedRows(pageRows(28), (row, index) => ({
         label: row.path,
         value: row.pv,
         color: index % 4 === 0 ? colors.green : colors.yellow,
@@ -584,7 +590,7 @@ const panels = [
         { key: "searches", label: "검색 수", num: true, format: fmt.format },
         { key: "zero", label: "무결과율", render: makeSpark },
         { key: "clickRate", label: "결과 클릭률", render: makeSpark },
-      ], Array.from({ length: 45 }, (_, index) => ({
+      ], generatedRows(45, (index) => ({
         rank: index + 1,
         keyword: pick(keywords, index),
         searches: number(5200 - index * 70, 0.65),
@@ -606,7 +612,7 @@ const panels = [
         { key: "keyword", label: "검색어" },
         { key: "searches", label: "검색 수", num: true, format: fmt.format },
         { key: "rate", label: "결과 클릭률", render: makeSpark },
-      ], Array.from({ length: 38 }, (_, index) => ({
+      ], generatedRows(38, (index) => ({
         type: ["신규", "재방문", "관심높음", "상담예정"][index % 4],
         keyword: ["드레스", "스튜디오", "견적", "메이크업", "리뷰", "이벤트"][index % 6],
         searches: number(3200 - index * 48, 0.65),
@@ -627,7 +633,7 @@ const panels = [
         { key: "page", label: "발생 화면" },
         { key: "clicks", label: "클릭 수", num: true, format: fmt.format },
         { key: "ctr", label: "CTR", render: makeSpark },
-      ], Array.from({ length: 34 }, (_, index) => ({
+      ], generatedRows(34, (index) => ({
         target: ["상담 신청", "견적 비교", "배너", "더보기", "예약 문의"][index % 5],
         page: ["/", "/search", "/product/detail", "/estimate"][index % 4],
         clicks: number(9800 - index * 160, 0.55),
@@ -649,7 +655,7 @@ const panels = [
         { key: "clicks", label: "클릭 수", num: true, format: fmt.format },
         { key: "users", label: "유저 수", num: true, format: fmt.format },
         { key: "score", label: "관심도", render: makeSpark },
-      ], Array.from({ length: 34 }, (_, index) => ({
+      ], generatedRows(34, (index) => ({
         category: ["드레스", "스튜디오", "메이크업", "홀", "기타"][index % 5],
         product: `TEMP_PRODUCT_${String(index + 1).padStart(3, "0")}`,
         clicks: number(7200 - index * 120, 0.62),
@@ -688,7 +694,7 @@ const panels = [
         { key: "rank", label: "첫 클릭 순위", num: true },
         { key: "rate", label: "상품 클릭률", render: makeSpark },
         { key: "zero", label: "무결과율", render: makeSpark },
-      ], pageRows(35).map((row, index) => ({
+      ], mappedRows(pageRows(35), (row, index) => ({
         keyword: ["드레스", "웨딩홀", "스튜디오", "메이크업", "부케", "상담"][index % 6],
         avg: (3 + rand() * 52).toFixed(1),
         rank: (1 + rand() * 8).toFixed(1),
@@ -712,7 +718,7 @@ const panels = [
         { key: "result", label: "결과 클릭 세션", num: true, format: fmt.format },
         { key: "product", label: "상품 클릭 세션", num: true, format: fmt.format },
         { key: "conversion", label: "상품 클릭 전환율", render: makeSpark },
-      ], Array.from({ length: 60 }, (_, index) => {
+      ], generatedRows(60, (index) => {
         const search = number(7200 - index * 82, 0.64);
         const conversion = 8 + rand() * 58;
         return {
@@ -756,7 +762,7 @@ const panels = [
         { key: "page", label: "발생 화면" },
         { key: "count", label: "건수", num: true, format: fmt.format },
         { key: "share", label: "비중", render: makeSpark },
-      ], Array.from({ length: 34 }, (_, index) => ({
+      ], generatedRows(34, (index) => ({
         status: ["유지", "추가", "취소", "재스크랩"][index % 4],
         page: ["/product/detail", "/search/result", "/my/scrap", "/review/detail"][index % 4],
         count: number(2200 - index * 37, 0.7),

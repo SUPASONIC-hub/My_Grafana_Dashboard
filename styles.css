@@ -198,6 +198,10 @@ main {
   border-color: #284a37;
   color: #9fe3ad;
 }
+.implementation-strip span:nth-child(7) {
+  border-color: #33486a;
+  color: #9fbff4;
+}
 .variable {
   display: inline-flex;
   align-items: center;
