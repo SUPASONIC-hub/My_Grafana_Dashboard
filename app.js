@@ -88,7 +88,11 @@ function renderLineChart(container, series) {
   const paths = series.map((item) => {
     const d = item.values.map((value, index) => `${index ? "L" : "M"} ${x(index)} ${y(value)}`).join(" ");
     const fill = `${d} L ${x(item.values.length - 1)} ${height - pad.bottom} L ${pad.left} ${height - pad.bottom} Z`;
-    return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>`;
+    const points = item.values.map((value, index) => {
+      const hour = `${String(index).padStart(2, "0")}:00`;
+      return `<circle class="series-point" cx="${x(index)}" cy="${y(value)}" r="7"><title>${item.name} · ${hour} · ${fmt.format(value)}</title></circle>`;
+    }).join("");
+    return `<path class="series-fill" d="${fill}" fill="${item.color}" opacity="0.12"></path><path class="series-line" d="${d}" fill="none" stroke="${item.color}" stroke-width="2"></path>${points}`;
   }).join("");
   const legend = series.map((item) => `<span><i style="background:${item.color}"></i>${item.name}</span>`).join("");
   container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="time series">${grid}${paths}${ticks}</svg><div class="legend">${legend}</div></div>`;
@@ -103,7 +107,7 @@ function renderBarChart(container, rows, mode = "horizontal") {
     const y = 8 + index * 24;
     const w = (row.value / max) * (width - left - 12);
     return `<text class="axis-text" x="${left - 8}" y="${y + 13}" text-anchor="end">${row.label}</text>
-      <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}"></rect>
+      <rect x="${left}" y="${y}" width="${w}" height="14" fill="${row.color || palette[index % palette.length]}"><title>${row.label} · ${fmt.format(row.value)}</title></rect>
       <text class="axis-text bar-value" x="${Math.min(width - 4, left + w + 7)}" y="${y + 12}" text-anchor="end">${fmt.format(row.value)}</text>`;
   }).join("");
   container.innerHTML = `<div class="chart-frame"><svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" role="img" aria-label="${mode} bar chart">${bars}</svg></div>`;
@@ -850,6 +854,7 @@ function renderViewDocs(panel, mode = activeViewDocMode) {
   $("viewPurpose").textContent = insight.purpose;
   $("viewMetrics").textContent = insight.metrics;
   $("viewImplementation").textContent = insight.implementation;
+  $("viewDocModeLabel").textContent = mode === "query" ? "Query: sanitized SQL" : "Panel Spec: gridPos / fieldConfig / thresholds";
   $("viewQueryTab").classList.toggle("active", mode === "query");
   $("viewSpecTab").classList.toggle("active", mode === "spec");
   $("viewDocBody").textContent = panelDocText(panel, mode);
@@ -869,6 +874,10 @@ function makePanel(panel, placement) {
   renderContext = placement ? "dashboard" : "view";
   panel.render(body);
   renderContext = previousContext;
+  node.querySelector(".panel-view-button").addEventListener("click", (event) => {
+    event.stopPropagation();
+    openPanelView(panel.id);
+  });
   const menuButton = node.querySelector(".panel-menu-button");
   menuButton.addEventListener("click", (event) => {
     event.stopPropagation();

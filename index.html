@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Customer Behavior Analytics Dashboard</title>
-    <meta name="deployment-marker" content="portfolio-dashboard-20260730-4f73d8b-followup" />
+    <meta name="deployment-marker" content="portfolio-dashboard-20260730-presentation-r2" />
     <meta
       name="description"
       content="Grafana 고객 행동 분석 대시보드를 보안 데이터를 제거한 포트폴리오용 인터랙티브 웹 대시보드로 재구성한 프로젝트입니다."
     />
     <link rel="icon" href="./Profile.jpg" />
     <link rel="apple-touch-icon" href="./Profile.jpg" />
-    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730" />
+    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730-r2" />
   </head>
   <body>
     <header class="grafana-topbar">
@@ -52,6 +52,13 @@
           <button type="button" class="share-button">⌯ Share</button>
           <button type="button" class="small-button">✎ Edit</button>
         </div>
+      </section>
+      <section class="implementation-strip" aria-label="포트폴리오 구현 요약">
+        <span>25 panels</span>
+        <span>Sanitized SQL</span>
+        <span>Grafana JSON layout</span>
+        <span>Query / Panel Spec</span>
+        <span>Preview + Full View</span>
       </section>
 
       <section id="dashboard" class="dashboard-grid" aria-label="Grafana dashboard panels"></section>
@@ -116,6 +123,10 @@
             <button id="viewQueryTab" class="active" type="button">Query</button>
             <button id="viewSpecTab" type="button">Panel Spec</button>
           </div>
+          <div class="panel-doc-mode-note" aria-label="문서 탭 설명">
+            <span id="viewDocModeLabel">Query: sanitized SQL</span>
+            <span>Panel Spec: gridPos / fieldConfig / thresholds</span>
+          </div>
           <pre id="viewDocBody"></pre>
         </aside>
       </section>
@@ -140,6 +151,7 @@
         <div class="panel-titlebar">
           <h2></h2>
           <div class="panel-actions">
+            <button class="panel-view-button" type="button" aria-label="View panel details">View</button>
             <button class="panel-menu-button" type="button" aria-label="Panel menu">⋮</button>
           </div>
         </div>
@@ -147,7 +159,7 @@
       </article>
     </template>
 
-    <script src="./panel-docs.js?v=portfolio-polish-20260730"></script>
-    <script src="./app.js?v=portfolio-polish-20260730"></script>
+    <script src="./panel-docs.js?v=portfolio-polish-20260730-r2"></script>
+    <script src="./app.js?v=portfolio-polish-20260730-r2"></script>
   </body>
 </html>

@@ -162,9 +162,35 @@ main {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 40px;
-  margin-bottom: 10px;
+  min-height: 36px;
+  margin-bottom: 6px;
   min-width: 0;
+}
+.implementation-strip {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  color: #aeb7c4;
+}
+.implementation-strip span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid #26313d;
+  border-radius: 3px;
+  background: #10151b;
+  color: #c3ccd8;
+  font-size: 12px;
+  font-weight: 700;
+}
+.implementation-strip span:nth-child(2),
+.implementation-strip span:nth-child(4) {
+  border-color: #284a37;
+  color: #9fe3ad;
 }
 .variable {
   display: inline-flex;
@@ -265,6 +291,8 @@ main {
   background: var(--panel);
 }
 .panel-titlebar h2 {
+  min-width: 0;
+  flex: 1;
   margin: 0;
   overflow: hidden;
   color: #dce3ed;
@@ -273,6 +301,25 @@ main {
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.panel-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.panel-view-button {
+  height: 24px;
+  padding: 0 8px;
+  border-color: transparent;
+  background: transparent;
+  color: #8b95a5;
+  font-size: 12px;
+  font-weight: 800;
+}
+.panel-view-button:hover {
+  border-color: #303947;
+  background: #202631;
+  color: #dce3ed;
 }
 .panel-menu-button {
   width: 24px;
@@ -385,6 +432,15 @@ tbody tr:hover td { background: #202630; }
 }
 .chart-frame:hover .series-fill {
   opacity: 0.18;
+}
+.series-point {
+  fill: transparent;
+  stroke: transparent;
+  pointer-events: all;
+}
+.series-point:hover {
+  fill: rgba(255, 255, 255, 0.22);
+  stroke: rgba(255, 255, 255, 0.6);
 }
 .chart-frame rect {
   transition: opacity 120ms ease, filter 120ms ease;
@@ -591,6 +647,29 @@ tbody tr:hover td { background: #202630; }
 .panel-doc-tabs button.active {
   background: #222a35;
   color: #fff;
+}
+.panel-doc-mode-note {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #252d38;
+  background: #10151b;
+}
+.panel-doc-mode-note span {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8px;
+  border: 1px solid #2b3542;
+  border-radius: 3px;
+  color: #b9c3d0;
+  font-size: 12px;
+  font-weight: 700;
+}
+.panel-doc-mode-note span:first-child {
+  border-color: #284a37;
+  color: #9fe3ad;
 }
 .panel-docs pre {
   flex: 1;
