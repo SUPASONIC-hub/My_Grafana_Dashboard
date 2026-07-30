@@ -1177,6 +1177,13 @@ function openInspect(panelId, mode = activeInspectMode) {
 }
 
 document.addEventListener("click", closePanelMenu);
+document.addEventListener("click", (event) => {
+  const trigger = event.target instanceof Element ? event.target.closest("[data-open-panel]") : null;
+  if (!trigger) return;
+  event.preventDefault();
+  event.stopPropagation();
+  openPanelView(trigger.dataset.openPanel);
+});
 document.addEventListener("keydown", (event) => {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
   if (event.key === "Escape" && !$("inspectDialog").open && !$("panelView").hidden) closePanelView();
@@ -1202,7 +1209,6 @@ $("viewCloseButton").addEventListener("click", closePanelView);
 $("viewInspectButton").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
 });
-$("openFeaturedPanel").addEventListener("click", () => openPanelView("active"));
 document.addEventListener("pointerover", (event) => {
   const target = event.target.closest("[data-tip], [data-tip-series]");
   if (!target) return;
@@ -1273,7 +1279,7 @@ $("viewSpecTab").addEventListener("click", () => {
   const panel = panelById.get(activePanelId);
   if (panel) renderViewDocs(panel, "spec");
 });
-$("copyDocButton").addEventListener("click", copyViewDoc);
+$("copyDocButton")?.addEventListener("click", copyViewDoc);
 $("queryTab").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
 });

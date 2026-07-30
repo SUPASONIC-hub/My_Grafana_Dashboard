@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Customer Behavior Analytics Dashboard</title>
-    <meta name="deployment-marker" content="portfolio-dashboard-20260730-staged-r11" />
+    <meta name="deployment-marker" content="portfolio-dashboard-20260730-featured-r12" />
     <meta
       name="description"
       content="Grafana 고객 행동 분석 대시보드를 보안 데이터를 제거한 포트폴리오용 인터랙티브 웹 대시보드로 재구성한 프로젝트입니다."
     />
     <link rel="icon" href="./Profile.jpg" />
     <link rel="apple-touch-icon" href="./Profile.jpg" />
-    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730-r11" />
+    <link rel="stylesheet" href="./styles.css?v=portfolio-polish-20260730-r12" />
   </head>
   <body>
     <header class="grafana-topbar">
@@ -25,7 +25,7 @@
         <span class="star">★</span>
         <span class="badge">Public</span>
         <span class="badge security-badge">Sanitized portfolio</span>
-        <span class="badge build-badge">Build r11</span>
+        <span class="badge build-badge">Build r12</span>
       </div>
       <div class="top-actions">
         <label class="search-box" aria-label="Search">
@@ -62,7 +62,7 @@
         <span>Preview + Full View</span>
         <span>Open View for sanitized Query & Panel Spec</span>
         <span>Optimized preview render</span>
-        <button id="openFeaturedPanel" type="button">Open featured View</button>
+        <button id="openFeaturedPanel" type="button" data-open-panel="active">Open featured View</button>
       </section>
 
       <section id="dashboard" class="dashboard-grid" aria-label="Grafana dashboard panels"></section>
@@ -174,7 +174,7 @@
       </article>
     </template>
 
-    <script src="./panel-docs.js?v=portfolio-polish-20260730-r11"></script>
-    <script src="./app.js?v=portfolio-polish-20260730-r11"></script>
+    <script src="./panel-docs.js?v=portfolio-polish-20260730-r12"></script>
+    <script src="./app.js?v=portfolio-polish-20260730-r12"></script>
   </body>
 </html>
