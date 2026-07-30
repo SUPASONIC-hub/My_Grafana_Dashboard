@@ -2,9 +2,31 @@ services:
   - type: web
     runtime: static
     name: my-grafana-dashboard
-    buildCommand: echo "Static portfolio site ready"
+    buildCommand: git rev-parse --short HEAD > deploy-version.txt && date -u +"%Y-%m-%dT%H:%M:%SZ" > deploy-time.txt && echo "Static portfolio site ready"
     staticPublishPath: .
     autoDeployTrigger: commit
+    headers:
+      - path: /
+        name: Cache-Control
+        value: no-store, max-age=0
+      - path: /index.html
+        name: Cache-Control
+        value: no-store, max-age=0
+      - path: /app.js
+        name: Cache-Control
+        value: no-cache
+      - path: /styles.css
+        name: Cache-Control
+        value: no-cache
+      - path: /panel-docs.js
+        name: Cache-Control
+        value: no-cache
+      - path: /deploy-version.txt
+        name: Cache-Control
+        value: no-store, max-age=0
+      - path: /deploy-time.txt
+        name: Cache-Control
+        value: no-store, max-age=0
     routes:
       - type: rewrite
         source: /*
