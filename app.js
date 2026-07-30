@@ -18,6 +18,7 @@ let renderContext = "dashboard";
 let renderRowLimit = null;
 const chartObservers = new WeakMap();
 const chartContainers = new Set();
+const panelMetaCache = new Map();
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -851,6 +852,20 @@ function panelDoc(panel) {
   return window.panelDocumentation?.[panelDocKey(panel)];
 }
 
+function cachedPanelMeta(panel) {
+  const key = panel.id;
+  if (panelMetaCache.has(key)) return panelMetaCache.get(key);
+  const doc = panelDoc(panel);
+  const spec = doc?.panelSpec || {};
+  const columns = Array.isArray(spec.columns) ? spec.columns.map((column) => String(column).replaceAll("`", "")) : [];
+  const thresholds = spec.fieldConfig?.defaults?.thresholds?.steps?.length || panel.settings?.thresholds?.length || 0;
+  const overrides = Array.isArray(spec.fieldConfig?.overrides) ? spec.fieldConfig.overrides.length : 0;
+  const queryLines = doc?.query ? doc.query.split(/\r?\n/).filter(Boolean).length : 0;
+  const meta = { doc, spec, columns, thresholds, overrides, queryLines };
+  panelMetaCache.set(key, meta);
+  return meta;
+}
+
 function displayPanelTitle(panel, placement) {
   if (!placement) return panel.title;
   return panel.title.replace(/\s*\([^)]*\)/g, "").replace(/_개인 전용/g, "").trim();
@@ -864,12 +879,8 @@ function panelDocText(panel, mode) {
 }
 
 function panelInsight(panel) {
-  const doc = panelDoc(panel);
-  const spec = doc?.panelSpec || {};
+  const { spec, columns, thresholds, overrides } = cachedPanelMeta(panel);
   const key = panelDocKey(panel);
-  const columns = Array.isArray(spec.columns) ? spec.columns.map((column) => String(column).replaceAll("`", "")) : [];
-  const thresholds = spec.fieldConfig?.defaults?.thresholds?.steps?.length || panel.settings?.thresholds?.length || 0;
-  const overrides = Array.isArray(spec.fieldConfig?.overrides) ? spec.fieldConfig.overrides.length : 0;
   const grid = spec.gridPos || {};
   const prefix = key.split("-")[0];
   const purposeByPanel = {
@@ -925,13 +936,8 @@ function panelInsight(panel) {
 }
 
 function panelEvidence(panel) {
-  const doc = panelDoc(panel);
-  const spec = doc?.panelSpec || {};
-  const columns = Array.isArray(spec.columns) ? spec.columns.length : 0;
-  const thresholds = spec.fieldConfig?.defaults?.thresholds?.steps?.length || panel.settings?.thresholds?.length || 0;
-  const overrides = Array.isArray(spec.fieldConfig?.overrides) ? spec.fieldConfig.overrides.length : 0;
-  const queryLines = doc?.query ? doc.query.split(/\r?\n/).filter(Boolean).length : 0;
-  return { columns, thresholds, overrides, queryLines };
+  const { columns, thresholds, overrides, queryLines } = cachedPanelMeta(panel);
+  return { columns: columns.length, thresholds, overrides, queryLines };
 }
 
 function panelTechTags(panel) {
@@ -948,8 +954,7 @@ function panelTechTags(panel) {
 function panelSummaryText(panel) {
   const insight = panelInsight(panel);
   const evidence = panelEvidence(panel);
-  const doc = panelDoc(panel);
-  const spec = doc?.panelSpec || {};
+  const { spec } = cachedPanelMeta(panel);
   const tags = panelTechTags(panel).join(", ");
   return [
     `Analysis Goal`,
@@ -1200,6 +1205,32 @@ document.addEventListener("pointerout", (event) => {
   const tip = $("chartTooltip");
   if (tip) tip.hidden = true;
 });
+
+async function copyViewDoc() {
+  const text = $("viewDocBody").textContent;
+  const button = $("copyDocButton");
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      document.execCommand("copy");
+      area.remove();
+    }
+    button.textContent = "Copied";
+    setTimeout(() => { button.textContent = "Copy"; }, 1200);
+  } catch {
+    button.textContent = "Copy failed";
+    setTimeout(() => { button.textContent = "Copy"; }, 1600);
+  }
+}
+
 $("viewSummaryTab").addEventListener("click", () => {
   const panel = panelById.get(activePanelId);
   if (panel) renderViewDocs(panel, "summary");
@@ -1212,6 +1243,7 @@ $("viewSpecTab").addEventListener("click", () => {
   const panel = panelById.get(activePanelId);
   if (panel) renderViewDocs(panel, "spec");
 });
+$("copyDocButton").addEventListener("click", copyViewDoc);
 $("queryTab").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
 });

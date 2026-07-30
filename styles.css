@@ -631,10 +631,29 @@ tbody tr:hover td { background: #202630; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.panel-doc-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
 .panel-docs-head span {
   color: #73bf69;
   font-size: 12px;
   text-transform: uppercase;
+}
+.panel-doc-actions button {
+  height: 24px;
+  padding: 0 8px;
+  border-color: #2b3542;
+  background: #161d25;
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+.panel-doc-actions button:hover {
+  border-color: #3b4b64;
+  background: #202936;
 }
 .panel-doc-summary {
   display: grid;
