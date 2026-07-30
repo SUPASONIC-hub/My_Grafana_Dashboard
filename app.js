@@ -13,6 +13,7 @@ const $ = (id) => document.getElementById(id);
 let seed = 26;
 let activePanelId = null;
 let activeInspectMode = "query";
+let activeViewDocMode = "query";
 
 function rand() {
   seed = (seed * 1664525 + 1013904223) % 4294967296;
@@ -178,7 +179,7 @@ const panels = [
     title: "1-1. 플랫폼별 세션 비중 (Session Share by Platform)",
     span: [1, 1, 12, 4],
     type: "table",
-    query: "SELECT platform, COUNT(DISTINCT session_id) sessions, COUNT(*) page_views, AVG(duration_sec) avg_duration FROM demo_events GROUP BY 1 ORDER BY sessions DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", thresholds: [60, 80], unit: "short" },
     render(container) {
       renderTable(container, [
@@ -203,7 +204,7 @@ const panels = [
     title: "1-2. 플랫폼별 평균 세션 체류시간 (Average Session Duration by Platform)",
     span: [13, 1, 12, 4],
     type: "table",
-    query: "SELECT platform, AVG(duration_sec) avg_duration, APPROX_QUANTILES(duration_sec, 4) duration_quantiles FROM demo_sessions GROUP BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", cellHeight: "sm" },
     render(container) {
       renderTable(container, [
@@ -226,7 +227,7 @@ const panels = [
     title: "1-3. 시간별 활성 세션 추이 (Traffic Trend)",
     span: [1, 5, 24, 8],
     type: "timeseries",
-    query: "SELECT TIMESTAMP_TRUNC(event_time, HOUR) time, platform, COUNT(DISTINCT session_id) value FROM demo_events GROUP BY 1, 2 ORDER BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "timeseries", drawStyle: "line", fillOpacity: 12 },
     render(container) {
       renderLineChart(container, [
@@ -241,7 +242,7 @@ const panels = [
     title: "1-4. 플랫폼별 세션당 평균 PV (Average Page Views per Session by Platform)",
     span: [1, 13, 8, 4],
     type: "table",
-    query: "SELECT platform, COUNT(*) page_views, COUNT(DISTINCT session_id) sessions, SAFE_DIVIDE(COUNT(*), COUNT(DISTINCT session_id)) pv_per_session FROM demo_events GROUP BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table" },
     render(container) {
       renderTable(container, [
@@ -260,7 +261,7 @@ const panels = [
     title: "1-5. 플랫폼별 세션 체류시간 분포 (Session Duration Distribution by Platform)",
     span: [9, 13, 8, 4],
     type: "table",
-    query: "SELECT duration_bucket, platform, COUNT(*) sessions FROM session_duration_bucket GROUP BY 1, 2;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table" },
     render(container) {
       renderTable(container, [
@@ -281,7 +282,7 @@ const panels = [
     title: "1-6. 체류시간 기준 초과/이하 세션 비중 (Session Duration Above/Below Benchmark)",
     span: [17, 13, 8, 4],
     type: "table",
-    query: "SELECT platform, SUM(duration_sec >= 600) above_threshold, SUM(duration_sec < 600) below_threshold FROM demo_sessions GROUP BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
     render(container) {
       renderTable(container, [
@@ -299,7 +300,7 @@ const panels = [
     title: "2-1. 고객 유형 파이프라인 비중 변화 (Customer Type Pipeline Share Trend)",
     span: [1, 17, 24, 8],
     type: "timeseries",
-    query: "SELECT event_hour, customer_type, COUNT(DISTINCT session_id) sessions FROM customer_pipeline_events GROUP BY 1, 2 ORDER BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "timeseries", stacking: "normal" },
     render(container) {
       renderLineChart(container, [
@@ -315,7 +316,7 @@ const panels = [
     title: "2-2. 고객 타입별 누적 회원 현황 (Cumulative Members by Customer Type)",
     span: [1, 25, 12, 6],
     type: "table",
-    query: "SELECT customer_type, COUNT(DISTINCT user_id) users, COUNT(DISTINCT IF(active, user_id, NULL)) active_users FROM user_profile GROUP BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table" },
     render(container) {
       renderTable(container, [
@@ -336,7 +337,7 @@ const panels = [
     title: "2-3. 평균 체류시간 초과 세션 유형별 요약 및 고객 목록 (Above-Average Session Summary by Customer Type)",
     span: [13, 25, 12, 6],
     type: "table",
-    query: "SELECT customer_type, COUNT(*) sessions, AVG(duration_sec) avg_duration FROM demo_sessions WHERE duration_sec > dashboard_avg_duration GROUP BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table" },
     render(container) {
       renderTable(container, [
@@ -357,7 +358,7 @@ const panels = [
     title: "2-4. 유저 마스터 정보 (Status Profile)",
     span: [1, 31, 24, 11],
     type: "table",
-    query: "SELECT user_id, contract_status, user_type_id, sessions, page_views, avg_session_pv, last_visit_at FROM user_profile ORDER BY last_visit_at DESC LIMIT 100;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", frozenColumns: 2, cellHeight: "sm" },
     render(container) {
       renderTable(container, [
@@ -384,7 +385,7 @@ const panels = [
     title: "2-5. 개인 행동 기반 추천 후보 (Behavior-based Recommendation Candidates)_개인 전용",
     span: [1, 42, 24, 7],
     type: "table",
-    query: "WITH category_affinity AS (...) SELECT * FROM recommendation_candidates WHERE user_id = ${Search_UserID} ORDER BY category_score DESC, product_score DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell", thresholds: [50, 75, 90] },
     render(container) {
       renderTable(container, [
@@ -411,7 +412,7 @@ const panels = [
     title: "2-6. 유저 세션별 페이지 이동 경로 (User Session Page Journey)_개인 전용",
     span: [1, 49, 24, 9],
     type: "table",
-    query: "SELECT user_id, session_id, STRING_AGG(page_path, ' > ' ORDER BY event_time) journey, MIN(event_time) start_at, MAX(event_time) end_at FROM demo_events GROUP BY 1, 2;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", wrapText: false },
     render(container) {
       renderTable(container, [
@@ -439,7 +440,7 @@ const panels = [
     title: "3-1. 페이지별 세션당 평균 조회수(Pages by Views per Session)",
     span: [1, 58, 24, 8],
     type: "table",
-    query: "SELECT page_path, page_title, COUNT(*) page_views, COUNT(DISTINCT session_id) sessions, AVG(scroll_depth) scroll_depth FROM page_events GROUP BY 1, 2;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", links: true },
     render(container) {
       renderTable(container, [
@@ -459,7 +460,7 @@ const panels = [
     title: "3-2. 진입/이탈 페이지 분석 (Entry & Exit)",
     span: [1, 66, 24, 9],
     type: "barchart",
-    query: "SELECT page_path, SUM(is_entry) entry_count, SUM(is_exit) exit_count FROM session_pages GROUP BY 1 ORDER BY entry_count DESC LIMIT 40;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal" },
     render(container) {
       renderBarChart(container, pageRows(28).map((row, index) => ({
@@ -474,7 +475,7 @@ const panels = [
     title: "3-3. 페이지별 스크롤 탐색 깊이(Pages by Scroll Engagement)",
     span: [1, 1, 24, 16],
     type: "table",
-    query: "SELECT page_title, page_url, total_views, scroll_event_count, view_sessions, scroll_sessions, avg_scroll_depth, deep_scroll_rate FROM page_scroll_base ORDER BY total_views DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", links: true, colorMode: "cell" },
     render(container) {
       renderTable(container, [
@@ -493,7 +494,7 @@ const panels = [
     title: "4-2. 검색어 및 무결과율 (Search Keywords & Zero-result Rate)",
     span: [1, 75, 12, 9],
     type: "table",
-    query: "SELECT keyword, COUNT(*) searches, SAFE_DIVIDE(SUM(no_result), COUNT(*)) zero_result_rate FROM search_events GROUP BY 1 ORDER BY searches DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
     render(container) {
       const keywords = ["스몰웨딩", "본식스냅", "드레스", "웨딩홀", "메이크업", "청첩장", "한복", "스튜디오", "혼주"];
@@ -517,7 +518,7 @@ const panels = [
     title: "4-3. 고객 타입별 검색어(Search Keywords by Customer Type)",
     span: [13, 75, 12, 9],
     type: "table",
-    query: "SELECT customer_type, keyword, COUNT(*) searches, AVG(result_click_rate) click_rate FROM search_events GROUP BY 1, 2 ORDER BY searches DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
     render(container) {
       renderTable(container, [
@@ -538,7 +539,7 @@ const panels = [
     title: "4-4. CTA·버튼·배너 클릭(CTA, Button & Banner Clicks)",
     span: [1, 84, 12, 8],
     type: "table",
-    query: "SELECT click_target, page_path, COUNT(*) clicks, COUNT(DISTINCT user_id) users FROM click_events GROUP BY 1, 2 ORDER BY clicks DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
     render(container) {
       renderTable(container, [
@@ -559,7 +560,7 @@ const panels = [
     title: "4-5. 상품·업체 클릭(Product & Vendor Clicks)",
     span: [13, 84, 12, 8],
     type: "table",
-    query: "SELECT product_category, product_id, COUNT(*) clicks, COUNT(DISTINCT user_id) users FROM product_click_events GROUP BY 1, 2 ORDER BY clicks DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
     render(container) {
       renderTable(container, [
@@ -582,7 +583,7 @@ const panels = [
     title: "4-1. 이벤트 유형별 발생 수 (Event Type Distribution)",
     span: [1, 92, 24, 8],
     type: "barchart",
-    query: "SELECT event_name, COUNT(*) event_count FROM demo_events GROUP BY 1 ORDER BY event_count DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "barGauge", displayMode: "lcd" },
     render(container) {
       const events = ["page_view", "product_click", "search", "cta_click", "scrap_add", "share_click", "search_result_click", "banner_click"];
@@ -598,7 +599,7 @@ const panels = [
     title: "4-6. 검색 결과 품질 지표 (Search Result Quality Metrics)",
     span: [1, 100, 12, 9],
     type: "table",
-    query: "SELECT keyword, AVG(result_count) avg_results, AVG(first_click_rank) first_click_rank, AVG(product_click_rate) product_click_rate FROM search_quality GROUP BY 1;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "cell" },
     render(container) {
       renderTable(container, [
@@ -621,7 +622,7 @@ const panels = [
     title: "4-7. 검색어별 상품 클릭 전환 (Search-to-Product Click Conversion by Keyword)",
     span: [1, 1, 24, 17],
     type: "table",
-    query: "SELECT keyword, search_sessions, result_click_sessions, product_click_sessions, product_click_conversion_rate FROM search_to_product_conversion ORDER BY search_sessions DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", colorMode: "gradient-gauge" },
     render(container) {
       renderTable(container, [
@@ -650,7 +651,7 @@ const panels = [
     title: "4-8. 스크랩 상태 요약 (Scrap Status Summary)",
     span: [1, 1, 24, 11],
     type: "bargauge",
-    query: "SELECT latest_scrap_status, COUNT(*) scrap_count, COUNT(DISTINCT user_id) users FROM scrap_events GROUP BY 1 ORDER BY scrap_count DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "barGauge", displayMode: "lcd" },
     render(container) {
       renderBarChart(container, [
@@ -667,7 +668,7 @@ const panels = [
     title: "4-9. 최종 스크랩 상태별 발생 화면 목록 (Latest Scrap Status by Source Page)",
     span: [13, 100, 12, 9],
     type: "table",
-    query: "SELECT final_scrap_status, page_path, COUNT(*) FROM scrap_state_transitions GROUP BY 1, 2;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "table", noDataState: true },
     render(container) {
       renderTable(container, [
@@ -688,7 +689,7 @@ const panels = [
     title: "5-1. 플랫폼·기기 환경별 세션 분포 (Platform & Device Environment)",
     span: [1, 109, 24, 10],
     type: "barchart",
-    query: "SELECT platform, device_type, browser, COUNT(DISTINCT session_id) sessions FROM session_environment GROUP BY 1, 2, 3 ORDER BY sessions DESC;",
+    query: "보안 치환된 Query는 View 화면의 Query 탭에서 확인하세요.",
     settings: { ...commonSettings, visualization: "barChart", orientation: "horizontal", unit: "sessions" },
     render(container) {
       const envs = ["web / desktop / chrome", "ios / mobile / safari", "aos / mobile / chrome", "web / mobile / samsung", "ios / tablet / safari", "aos / tablet / chrome"];
@@ -755,6 +756,28 @@ const layoutRows = [
 ];
 
 const panelById = new Map(panels.map((panel) => [panel.id, panel]));
+
+function panelDocKey(panel) {
+  return panel.title.match(/^(\d+-\d+)/)?.[1] || panel.id;
+}
+
+function panelDoc(panel) {
+  return window.panelDocumentation?.[panelDocKey(panel)];
+}
+
+function panelDocText(panel, mode) {
+  const doc = panelDoc(panel);
+  if (!doc) return mode === "query" ? panel.query : JSON.stringify(panel.settings, null, 2);
+  return mode === "query" ? doc.query : JSON.stringify(doc.panelSpec, null, 2);
+}
+
+function renderViewDocs(panel, mode = activeViewDocMode) {
+  activeViewDocMode = mode;
+  $("viewDocTitle").textContent = panel.title;
+  $("viewQueryTab").classList.toggle("active", mode === "query");
+  $("viewSpecTab").classList.toggle("active", mode === "spec");
+  $("viewDocBody").textContent = panelDocText(panel, mode);
+}
 
 function makePanel(panel, placement) {
   const node = $("panelTemplate").content.firstElementChild.cloneNode(true);
@@ -838,6 +861,7 @@ function openPanelView(panelId) {
   node.style.gridColumn = "";
   node.style.gridRow = "";
   slot.appendChild(node);
+  renderViewDocs(panel);
   $("viewUserSearch").value = $("userSearch").value;
   $("panelView").hidden = false;
   document.body.style.overflow = "hidden";
@@ -851,21 +875,9 @@ function closePanelView() {
 
 function inspectPayload(panel, mode) {
   if (mode === "query") {
-    return panel.query;
+    return panelDocText(panel, "query");
   }
-  return JSON.stringify({
-    id: panel.id,
-    title: panel.title,
-    type: panel.type,
-    gridPos: {
-      x: panel.span[0] - 1,
-      y: panel.span[1] - 1,
-      w: panel.span[2],
-      h: panel.span[3],
-    },
-    targets: [{ refId: "A", datasource: commonSettings.datasource, rawSql: panel.query }],
-    fieldConfig: panel.settings,
-  }, null, 2);
+  return panelDocText(panel, "spec");
 }
 
 function openInspect(panelId, mode = activeInspectMode) {
@@ -901,6 +913,14 @@ $("closeView").addEventListener("click", closePanelView);
 $("viewCloseButton").addEventListener("click", closePanelView);
 $("viewInspectButton").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");
+});
+$("viewQueryTab").addEventListener("click", () => {
+  const panel = panelById.get(activePanelId);
+  if (panel) renderViewDocs(panel, "query");
+});
+$("viewSpecTab").addEventListener("click", () => {
+  const panel = panelById.get(activePanelId);
+  if (panel) renderViewDocs(panel, "spec");
 });
 $("queryTab").addEventListener("click", () => {
   if (activePanelId) openInspect(activePanelId, "query");

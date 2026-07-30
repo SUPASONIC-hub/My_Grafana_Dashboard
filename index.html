@@ -10,13 +10,13 @@
     />
     <link rel="icon" href="./Profile.jpg" />
     <link rel="apple-touch-icon" href="./Profile.jpg" />
-    <link rel="stylesheet" href="./styles.css?v=f692671" />
+    <link rel="stylesheet" href="./styles.css?v=panel-docs-20260730" />
   </head>
   <body>
     <header class="grafana-topbar">
       <div class="crumbs">
         <button class="icon-button" type="button" aria-label="Toggle menu">☰</button>
-        <span class="grafana-mark">◎</span>
+        <img class="grafana-logo" src="./assets/grafana-icon.svg" alt="" />
         <span>Dashboards</span>
         <span>Dashboards</span>
         <strong>고객 행동 분석 대시보드(Customer Behavior Analytics Dashboard)</strong>
@@ -32,7 +32,7 @@
         </label>
         <button class="icon-button" type="button" aria-label="Create">＋</button>
         <button class="icon-button" type="button" aria-label="Help">?</button>
-        <span class="avatar">H</span>
+        <img class="avatar" src="./Profile.jpg" alt="Profile" />
       </div>
     </header>
 
@@ -66,7 +66,7 @@
       <header class="grafana-topbar view-topbar">
         <div class="crumbs">
           <button id="closeView" class="icon-button" type="button" aria-label="Back">‹</button>
-          <span class="grafana-mark">◎</span>
+          <img class="grafana-logo" src="./assets/grafana-icon.svg" alt="" />
           <span>Dashboards</span>
           <span>Dashboards</span>
           <strong>고객 행동 분석 대시보드</strong>
@@ -89,7 +89,20 @@
           <button type="button" class="small-button">✎ Edit</button>
         </div>
       </section>
-      <section id="viewPanelSlot" class="view-panel-slot"></section>
+      <section class="view-workspace">
+        <div id="viewPanelSlot" class="view-panel-slot"></div>
+        <aside class="panel-docs" aria-label="패널 쿼리와 설정">
+          <div class="panel-docs-head">
+            <strong id="viewDocTitle">Panel documentation</strong>
+            <span>sanitized</span>
+          </div>
+          <div class="panel-doc-tabs" role="tablist">
+            <button id="viewQueryTab" class="active" type="button">Query</button>
+            <button id="viewSpecTab" type="button">Panel Spec</button>
+          </div>
+          <pre id="viewDocBody"></pre>
+        </aside>
+      </section>
     </div>
 
     <dialog id="inspectDialog" class="inspect-dialog">
@@ -118,6 +131,7 @@
       </article>
     </template>
 
-    <script src="./app.js?v=f692671"></script>
+    <script src="./panel-docs.js?v=panel-docs-20260730"></script>
+    <script src="./app.js?v=panel-docs-20260730"></script>
   </body>
 </html>
